@@ -88,6 +88,9 @@
 
 </div>
 
+<!-- Skrytý iframe pro odeslání dat bez CORS problému -->
+<iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
 <script>
 const SCRIPT_URL = "https://script.google.com/a/macros/amanual.cz/s/AKfycbyacLcv6Ql-6HjdNMuPea1xPD-izfIdg6IakA7ZIUfuxIMLgYqDDjhgDSK5cwEVievb/exec";
 const IMAGES = [
@@ -208,7 +211,7 @@ function updateUI() {
   });
 }
 
-async function submitVote() {
+function submitVote() {
   const name = document.getElementById('voterName').value.trim();
   if (!name) {
     document.getElementById('nameError').textContent = 'Prosím zadej své jméno!';
@@ -219,23 +222,38 @@ async function submitVote() {
 
   const picks = Array.from(selected).sort((a,b) => a-b);
 
+  // Zobraz spinner
   document.getElementById('voting').style.display = 'none';
   document.getElementById('sending').style.display = 'block';
 
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name, votes: picks })
-    });
-  } catch(e) {
-    console.error('Chyba při odesílání:', e);
-  }
+  // Odešli přes skrytý formulář do iframe - obejde CORS
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = SCRIPT_URL;
+  form.target = 'hidden_iframe';
+  form.style.display = 'none';
 
-  document.getElementById('sending').style.display = 'none';
-  document.getElementById('successBox').style.display = 'block';
-  document.getElementById('successText').textContent = name + ', tvůj hlas pro obrázky ' + picks.map(i=>'#'+i).join(', ') + ' byl uložen!';
+  const addField = (name, value) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  };
+
+  addField('name', name);
+  addField('votes', picks.join(','));
+
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+
+  // Počkej 2s a zobraz potvrzení
+  setTimeout(() => {
+    document.getElementById('sending').style.display = 'none';
+    document.getElementById('successBox').style.display = 'block';
+    document.getElementById('successText').textContent = name + ', tvůj hlas pro obrázky ' + picks.map(i=>'#'+i).join(', ') + ' byl uložen!';
+  }, 2000);
 }
 
 function resetVoting() {
