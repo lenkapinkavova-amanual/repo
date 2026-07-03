@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ambiente · Morek CZ — Analýza e-mailových kampaní</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#ffffff; --card:#ffffff; --ink:#111111; --ink2:#3a3a3a; --muted:#8a8a8a;
+  --line:#e7e7e7; --line2:#d6d6d6; --hover:#fafafa; --thead:#fafafa;
+  --red:#c8102e; --red-d:#a00d24; --red-tint:#fbeaec;
+  --fn1:#111111; --fn2:#c8102e; --fn3:#7a0a1c;
+  --up:#1b7d4f; --dn:#c8102e;
+}
+body.dark{
+  --bg:#141414; --card:#1d1d1d; --ink:#f0f0f0; --ink2:#cfcfcf; --muted:#8f8f8f;
+  --line:#2c2c2c; --line2:#3a3a3a; --hover:#242424; --thead:#202020;
+  --red:#e23b54; --red-d:#c8102e; --red-tint:#2a1519;
+  --fn1:#d8d8d8; --fn2:#e23b54; --fn3:#9c2536;
+  --up:#3fae77; --dn:#e23b54;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);transition:background .2s,color .2s;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+.num{font-variant-numeric:tabular-nums;}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px 80px;}
+h1,h2,h3,h4{font-weight:700;letter-spacing:-.02em;margin:0;}
+
+.mast{padding:42px 0 22px;}
+.eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--red);margin-bottom:13px;}
+.mast h1{font-size:clamp(28px,4.6vw,46px);line-height:1.04;font-weight:800;letter-spacing:-.03em;}
+.mast .sub{display:flex;flex-wrap:wrap;gap:6px 24px;margin-top:16px;font-size:12.5px;color:var(--muted);}
+.mast .sub b{color:var(--ink2);font-weight:600;}
+
+.toolbar{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:13px 0;margin-bottom:6px;}
+.toolbar .mf{display:flex;align-items:center;gap:8px;}
+.toolbar label{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);}
+.toolbar select,.dinp{font-family:inherit;font-size:13.5px;font-weight:500;color:var(--ink);border:1px solid var(--line2);
+  background:var(--card);border-radius:8px;padding:7px 12px;cursor:pointer;}
+.toolbar select{padding-right:30px;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='gray' stroke-width='1.4' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center;}
+.toolbar select:focus,.dinp:focus{outline:none;border-color:var(--red);}
+.daterange{display:inline-flex;align-items:center;gap:7px;}
+.daterange[hidden]{display:none;}
+.dinp{font-size:13px;padding:6px 9px;cursor:auto;}
+.dr-dash{color:var(--muted);}
+.scope{font-size:12.5px;color:var(--muted);} .scope b{color:var(--ink);font-weight:700;}
+.spacer{margin-left:auto;}
+.icon-btn{border:1px solid var(--line2);background:var(--card);color:var(--ink);border-radius:8px;width:38px;height:38px;
+  cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center;}
+.icon-btn:hover{border-color:var(--red);color:var(--red);}
+.btn-pdf{font-family:inherit;font-size:13.5px;font-weight:700;color:#fff;background:var(--red);border:none;border-radius:8px;padding:9px 18px;cursor:pointer;}
+.btn-pdf:hover{background:var(--red-d);}
+
+.sec{margin-top:46px;}
+.sec-h{display:flex;align-items:baseline;gap:13px;margin-bottom:18px;}
+.sec-h .nm{font-size:12px;font-weight:700;color:var(--red);letter-spacing:.08em;padding-top:2px;}
+.sec-h h2{font-size:22px;font-weight:800;letter-spacing:-.025em;}
+.sec-h .note{margin-left:auto;font-size:12.5px;color:var(--muted);}
+.sub-h{font-size:13px;font-weight:700;color:var(--ink);margin:4px 0 12px;display:flex;align-items:center;gap:8px;}
+.sub-h::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--red);}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;}
+
+.analysis{border-left:4px solid var(--red);}
+.analysis h2{font-size:clamp(20px,2.5vw,26px);line-height:1.14;font-weight:800;letter-spacing:-.03em;margin:5px 0 0;max-width:780px;}
+.analysis .lead{font-size:15.5px;line-height:1.6;color:var(--ink2);max-width:830px;margin:15px 0 4px;}
+.an-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 40px;margin-top:24px;}
+.an-grid h3{font-size:14px;margin:0 0 5px;display:flex;align-items:center;gap:9px;}
+.an-grid h3::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red);flex:0 0 auto;}
+.an-grid p{margin:0;font-size:13.6px;line-height:1.55;color:var(--ink2);}
+.an-grid b{color:var(--ink);font-weight:700;}
+.an-rec{margin-top:24px;padding:18px 20px;background:var(--red-tint);border:1px solid color-mix(in srgb,var(--red) 25%,transparent);border-radius:10px;}
+.an-rec h3{font-size:14px;margin:0 0 10px;} .an-rec ol{margin:0;padding-left:20px;}
+.an-rec li{font-size:13.6px;line-height:1.5;color:var(--ink2);margin-bottom:7px;} .an-rec li:last-child{margin-bottom:0;}
+.an-rec b{color:var(--ink);font-weight:700;}
+.an-note{margin-top:20px;padding-top:15px;border-top:1px solid var(--line);font-size:11.6px;color:var(--muted);line-height:1.65;}
+
+.hero-top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:22px;margin-bottom:16px;}
+.hero-top .big{font-size:46px;font-weight:800;line-height:.95;letter-spacing:-.04em;color:var(--red);}
+.hero-top .big span{font-size:19px;color:var(--muted);font-weight:600;}
+.hero-top .cap{font-size:12.5px;color:var(--ink2);max-width:340px;margin-left:auto;}
+.fgroup{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}
+.fgroup .fl{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);width:64px;flex:0 0 auto;}
+.mchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--card);padding:6px 13px;
+  border-radius:99px;font-size:13px;cursor:pointer;font-weight:600;color:var(--ink2);}
+.mchip .d{width:9px;height:9px;border-radius:50%;background:var(--mc);flex:0 0 auto;}
+.mchip.off{opacity:.4;} .mchip.off .d{background:transparent;border:1.5px solid var(--mc);}
+.tl-canvas{position:relative;height:360px;margin-top:8px;}
+.hint{margin-top:12px;font-size:11.5px;color:var(--muted);} .hint b{color:var(--ink2);font-weight:600;}
+
+.funnel{max-width:760px;margin:2px auto 0;}
+.fn-stage{display:flex;align-items:center;gap:18px;}
+.fn-barwrap{flex:1;min-width:0;}
+.fn-bar{height:56px;border-radius:9px;display:flex;align-items:center;padding:0 18px;color:#fff;font-weight:700;font-size:13.5px;
+  white-space:nowrap;transition:width .45s ease;min-width:132px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.fn-val{flex:0 0 168px;text-align:right;}
+.fn-val .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;}
+.fn-val .s{font-size:11.5px;color:var(--muted);}
+.fn-step{padding:8px 0;text-align:center;font-size:11.5px;color:var(--muted);font-weight:600;} .fn-step b{color:var(--red);}
+
+.yoy-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:22px;}
+.yoy-table th{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:right;padding:11px 14px;border-bottom:2px solid var(--line2);}
+.yoy-table th.l{text-align:left;}
+.yoy-table td{padding:11px 14px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;}
+.yoy-table td.l{text-align:left;color:var(--ink2);}
+.yval{font-weight:700;} .dlt{display:inline-block;font-size:11px;margin-left:9px;font-weight:700;}
+.dlt.up{color:var(--up);} .dlt.dn{color:var(--dn);} .dlt.flat{color:var(--muted);}
+.yoy-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.mini{border:1px solid var(--line);border-radius:12px;padding:15px 15px 9px;}
+.mini h4{font-size:13.5px;margin:0 0 2px;} .mini .mh{font-size:10px;color:var(--muted);margin-bottom:6px;}
+.mini-canvas{position:relative;height:150px;}
+
+.seg-canvas{position:relative;height:300px;margin-top:4px;}
+.segs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px;}
+.segcard{border:1px solid var(--line);border-radius:12px;padding:16px 18px 6px;position:relative;overflow:hidden;}
+.segcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c);}
+.segcard h3{font-size:17px;display:flex;align-items:center;gap:9px;}
+.segcard h3 .tag{margin-left:auto;font-size:11px;color:var(--muted);font-weight:500;}
+.srow{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:13px;}
+.srow:first-of-type{border-top:none;} .srow .k{color:var(--ink2);} .srow .v{font-weight:700;font-variant-numeric:tabular-nums;}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:4px;}
+.tile{border:1px solid var(--line);border-radius:11px;padding:14px 15px;}
+.tile .tl{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+.tile .tv{font-size:24px;font-weight:800;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums;}
+.tile .ts{font-size:11.5px;color:var(--muted);margin-top:4px;}
+.tile.ph{border-style:dashed;background:transparent;}
+.tile.ph .tv{color:var(--line2);font-size:20px;}
+.pending{font-size:11.5px;color:var(--muted);margin-top:10px;font-style:italic;}
+
+.hm-wrap{overflow-x:auto;}
+.hm{border-collapse:collapse;font-size:12px;min-width:520px;}
+.hm th{font-size:10.5px;font-weight:700;color:var(--muted);padding:6px 8px;text-align:center;}
+.hm th.l,.hm td.l{text-align:left;font-weight:700;color:var(--ink2);white-space:nowrap;}
+.hm td{padding:0;}
+.hm .cell{width:46px;height:38px;border-radius:6px;margin:3px;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-variant-numeric:tabular-nums;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.hm-legend{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:11.5px;color:var(--muted);}
+.hm-scale{display:flex;height:10px;width:160px;border-radius:5px;overflow:hidden;}
+
+.detail-overlay{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;overflow:auto;}
+.detail-overlay[hidden]{display:none;}
+.detail-modal{background:var(--card);border-radius:16px;width:100%;max-width:1080px;box-shadow:0 24px 70px rgba(0,0,0,.4);overflow:hidden;border:1px solid var(--line);}
+.dm-head{display:flex;align-items:center;gap:14px;padding:20px 24px;border-bottom:1px solid var(--line);}
+.dm-head h3{font-size:18px;font-weight:800;} .dm-head .sub{font-size:12.5px;color:var(--muted);}
+.dm-close{margin-left:auto;border:1px solid var(--line2);background:var(--card);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:16px;color:var(--ink2);}
+.dm-close:hover{border-color:var(--red);color:var(--red);}
+.dm-body{padding:18px 24px 24px;}
+.dm-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.dm-filters .fl{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.chip{border:1px solid var(--line2);background:var(--card);color:var(--ink2);padding:5px 13px;border-radius:99px;font-size:13px;cursor:pointer;font-weight:600;}
+.chip:hover{border-color:var(--ink2);}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.tbl-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px;max-height:60vh;}
+table.dt{width:100%;border-collapse:collapse;font-size:13px;min-width:900px;}
+table.dt thead th{position:sticky;top:0;background:var(--thead);text-align:right;padding:11px 12px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);border-bottom:2px solid var(--line2);cursor:pointer;white-space:nowrap;user-select:none;}
+table.dt thead th.l{text-align:left;} table.dt thead th:hover{color:var(--red);}
+table.dt thead th .ar{opacity:.35;font-size:9px;margin-left:3px;} table.dt thead th.sorted .ar{opacity:1;color:var(--red);}
+table.dt tbody td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums;}
+table.dt tbody td.l{text-align:left;} table.dt tbody tr:hover{background:var(--hover);}
+.seg-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;}
+.cname{font-weight:600;color:var(--ink);}
+.subj{color:var(--ink2);font-size:12.5px;line-height:1.35;white-space:normal;max-width:260px;min-width:170px;}
+.z{color:var(--line2);}
+
+.ctx{position:fixed;z-index:80;background:var(--card);border:1px solid var(--line2);border-radius:10px;box-shadow:0 10px 34px rgba(0,0,0,.18);padding:5px;min-width:240px;}
+.ctx[hidden]{display:none;}
+.ctx-item{display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--ink);text-align:left;padding:10px 12px;border-radius:7px;cursor:pointer;}
+.ctx-item:hover{background:var(--red-tint);color:var(--red-d);}
+
+.foot{margin-top:54px;padding-top:20px;border-top:1px solid var(--line);font-size:11.6px;color:var(--muted);line-height:1.7;}
+
+@media(max-width:860px){.an-grid,.segs{grid-template-columns:1fr;}.yoy-grid{grid-template-columns:repeat(2,1fr);}.hero-top .cap{margin-left:0;}}
+@media(max-width:560px){.wrap{padding:0 16px 60px;}.hero-top .big{font-size:36px;}.fn-val{flex-basis:104px;}.fn-val .v{font-size:18px;}.fn-bar{min-width:108px;font-size:12px;padding:0 12px;}.fgroup .fl{width:100%;}.segs{grid-template-columns:1fr;}}
+@media print{
+  @page{margin:13mm;}
+  body,body.dark{--bg:#fff;--card:#fff;--ink:#111;--ink2:#333;--line:#ddd;--thead:#fafafa;}
+  .toolbar,.ctx,.detail-overlay,.hint,.fgroup{display:none !important;}
+  .wrap{max-width:none;padding:0;} .sec,.card,.mini,.an-rec,.segcard{break-inside:avoid;} body{font-size:12px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+
+  <header class="mast">
+    <div class="eyebrow">Ambiente · E-mail marketing — reporting</div>
+    <h1>Analýza e-mailových kampaní</h1>
+    <div class="sub" id="mastSub"></div>
+  </header>
+
+  <div class="toolbar">
+    <div class="mf"><label for="mfPeriod">Období</label><select id="mfPeriod"></select>
+      <span class="daterange" id="dateRange" hidden>
+        <input type="date" id="dateFrom" class="dinp"><span class="dr-dash">–</span><input type="date" id="dateTo" class="dinp">
+      </span>
+    </div>
+    <div class="mf"><label for="mfType">Typ newsletteru</label><select id="mfType"></select></div>
+    <div class="mf"><label for="mfGroup">Cílová skupina</label><select id="mfGroup"></select></div>
+    <div class="scope">Výběr: <b id="scopeCount"></b></div>
+    <span class="spacer"></span>
+    <button class="icon-btn" id="btnTheme" title="Přepnout světlý / tmavý režim">🌙</button>
+    <button class="btn-pdf" id="btnPdf">Export do PDF</button>
+  </div>
+
+  <!-- SUMMARY -->
+  <section class="sec" style="margin-top:26px">
+    <div class="card analysis">
+      <div class="eyebrow">Shrnutí · interpretace</div>
+      <h2 id="su_head">Interní newslettery Ambiente</h2>
+      <p class="lead" id="su_lead"></p>
+      <div class="an-grid" id="su_grid"></div>
+      
+      <div class="an-rec"><h3>Doporučení</h3><ol>
+        <li><b>Vyhodnocovat každý newsletter zvlášť.</b> Každý má jinou databázi, cílovou skupinu i design — sleduj jeho vlastní vývoj a baseline v čase, ne srovnání s ostatními.</li>
+        <li><b>Replikovat formát s jasnou výzvou / CTA</b> tam, kde chceme prokliky — konkrétní cíl proklik výrazně zvedá.</li>
+        <li><b>Zkontrolovat tracking prokliků</b> u kampaní s CTR/CTOR 0 % navzdory dobré otevíranosti — příznak chybějícího měření, ne slabého výkonu.</li>
+        <li><b>Sledovat vývoj open rate</b> — občasné čištění méně aktivních kontaktů a A/B testy předmětů.</li>
+      </ol></div>
+      <div class="an-note">Metodika: open rate je vážený doručenými e-maily, CTR a CTOR jsou prostý průměr kampaní, odhlášení je absolutní počet. U starších rozesílek UM (2022–2023) chybí pole „Odeslané“ — jako základ se proto bere počet doručených. Sekce Srovnání porovnává vybrané období se stejným obdobím v předchozích letech (podle kalendáře nahoře). Segmenty STAFF / Tamigo / Ostatní se odvozují z názvu kampaně. Shrnutí popisuje celý dataset; filtry nahoře ovlivňují ostatní sekce.</div>
+    </div>
+  </section>
+
+  <!-- 01 TIMELINE -->
+  <section class="sec">
+    <div class="sec-h"><span class="nm">01</span><h2>Časová osa metrik</h2><span class="note" id="tlScope"></span></div>
+    <div class="card">
+      <div class="hero-top"><div><div class="big" id="heroOR"></div>
+        <div class="eyebrow" style="margin:8px 0 0">Vážený open rate · aktuální výběr</div></div>
+        <div class="cap">Vývoj metrik v čase pro aktuální výběr. Metriky zapínej tlačítky níže; odhlášení se zobrazují na pravé ose (počet).</div></div>
+      <div class="fgroup" id="metChips"><span class="fl">Metriky</span></div>
+      <div class="tl-canvas"><canvas id="cTL"></canvas></div>
+      <div class="hint">Tip: <b>pravým tlačítkem</b> kdekoliv otevřeš <b>detailní data kampaní</b> (Explore more).</div>
+    </div>
+  </section>
+
+  <!-- 02 FUNNEL -->
+  <section class="sec">
+    <div class="sec-h"><span class="nm">02</span><h2>Cesta příjemce</h2><span class="note" id="fnScope"></span></div>
+    <div class="card"><div class="funnel" id="funnel"></div></div>
+  </section>
+
+  <!-- 03 YoY -->
+  <section class="sec">
+    <div class="sec-h"><span class="nm">03</span><h2>Srovnání rok po roce (YoY)</h2><span class="note" id="yoyScope"></span></div>
+    <div class="card" style="padding:22px 24px 24px"><table class="yoy-table" id="yoyTable"></table><div class="yoy-grid" id="yoyGrid"></div></div>
+  </section>
+
+  <!-- 04 SEGMENTS -->
+  <section class="sec">
+    <div class="sec-h"><span class="nm">04</span><h2>Vývoj a data segmentů</h2><span class="note" id="segScope"></span></div>
+    <div class="card">
+      <div class="sub-h">Vývoj segmentů v čase — odeslané e-maily podle segmentu</div>
+      <div class="seg-canvas"><canvas id="cSeg"></canvas></div>
+      <div class="segs" id="segs"></div>
+      <div style="margin-top:26px"><div class="sub-h">Demografická data</div>
+        <div class="tiles" id="demoTiles"></div>
+        <div class="pending">Demografická data (věk, pohlaví, lokalita, jazyk) nejsou součástí tohoto exportu — sekce se naplní, jakmile je zdroj bude obsahovat.</div>
+      </div>
+      <div style="margin-top:26px"><div class="sub-h">Technická data (doručování)</div>
+        <div class="tiles" id="techTiles"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 DAY/TIME -->
+  <section class="sec">
+    <div class="sec-h"><span class="nm">05</span><h2>Den a čas otevření</h2><span class="note" id="hmScope"></span></div>
+    <div class="card">
+      <div class="sub-h">Open rate podle dne a času odeslání</div>
+      <div class="hm-wrap"><div id="heatmap"></div></div>
+      <div class="hm-legend">nižší open rate
+        <span class="hm-scale" id="hmScale"></span> vyšší &nbsp;·&nbsp; číslo v buňce = ⌀ open rate, sytost = výkon, počet kampaní v tooltipu</div>
+      <div style="margin-top:26px"><div class="sub-h">Otevření: tmavý vs. světlý režim</div>
+        <div class="tiles" id="modeTiles"></div>
+        <div class="pending">Rozpad otevření podle režimu e-mailového klienta (dark / light mode) není v tomto exportu — naplní se, jakmile platforma poskytne data o vykreslení e-mailu.</div>
+      </div>
+      <div class="an-note" style="border-top:1px solid var(--line)">Pozn.: export neobsahuje časy jednotlivých otevření, heatmapa proto vychází z <b>času odeslání</b> kampaně a průměrného open rate — ukazuje, který den a čas rozesílky vede k nejlepší otevíranosti.</div>
+    </div>
+  </section>
+
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<div class="ctx" id="ctxMenu" hidden>
+  <button class="ctx-item" id="ctxExplore"><span>⤢</span>Prozkoumat detailní data kampaní</button>
+</div>
+
+<div class="detail-overlay" id="detailOverlay" hidden>
+  <div class="detail-modal">
+    <div class="dm-head"><h3>Detailní data kampaní</h3><span class="sub" id="dmScope"></span><button class="dm-close" id="dmClose">✕</button></div>
+    <div class="dm-body">
+      <div class="dm-filters"><span class="fl">Segment</span>
+        <button class="chip on" data-dseg="all">Vše</button>
+        <button class="chip" data-dseg="STAFF">STAFF</button>
+        <button class="chip" data-dseg="Tamigo">Tamigo</button>
+        <button class="chip" data-dseg="Ostatní">Ostatní</button>
+        <span class="sub" id="dmCount" style="margin-left:auto;color:var(--muted);font-size:12.5px"></span>
+      </div>
+      <div class="tbl-scroll"><table class="dt" id="tbl"><thead><tr>
+        <th class="l" data-k="date">Datum<span class="ar">▾</span></th>
+        <th class="l" data-k="name">Kampaň<span class="ar">▾</span></th>
+        <th class="l">Předmět e-mailu</th>
+        <th data-k="sent">Odesl.<span class="ar">▾</span></th>
+        <th data-k="open_rate" class="sorted">Open&nbsp;rate<span class="ar">▾</span></th>
+        <th data-k="ctr">CTR<span class="ar">▾</span></th>
+        <th data-k="ctor">CTOR<span class="ar">▾</span></th>
+        <th data-k="unsub">Odhlášení<span class="ar">▾</span></th>
+      </tr></thead><tbody id="tbody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = [{"id": 1641, "date": "2022-08-24", "dlabel": "24.8.2022", "month": "2022-08", "hour": 15, "dow": 2, "dowl": "St", "name": "UM_2022_08_24 První zpráva o nás CZ", "subject": "👨‍🍳 👩‍🍳 Spouštíme kurzy vaření!", "seg": "Ostatní", "type": "UM", "sent": 7133, "deliv": 7133, "opens": 3954, "open_rate": 55.43, "ctr": 8.79, "ctor": 15.86, "unsub": 6, "hb": 2, "sb": 2, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1642, "date": "2022-08-25", "dlabel": "25.8.2022", "month": "2022-08", "hour": 11, "dow": 3, "dowl": "Čt", "name": "UM_2022_08_25 První zpráva o nás EN", "subject": "👨‍🍳 👩‍🍳 We're now offering cooking classes!", "seg": "Ostatní", "type": "UM", "sent": 371, "deliv": 371, "opens": 245, "open_rate": 66.04, "ctr": 9.97, "ctor": 15.1, "unsub": 1, "hb": 0, "sb": 2, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1648, "date": "2022-09-08", "dlabel": "8.9.2022", "month": "2022-09", "hour": 9, "dow": 3, "dowl": "Čt", "name": "2022_09_08 NWL_no3 summer CZ", "subject": "Zářijové tipy z Ambiente 🐟🍻🛹", "seg": "Ostatní", "type": "UM", "sent": 7162, "deliv": 7162, "opens": 3915, "open_rate": 54.66, "ctr": 5.96, "ctor": 10.91, "unsub": 9, "hb": 0, "sb": 5, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1649, "date": "2022-09-12", "dlabel": "12.9.2022", "month": "2022-09", "hour": 16, "dow": 0, "dowl": "Po", "name": "2022_09_12 NWL_no3 summer EN", "subject": "September tips from Ambiente 🐟🍻🛹", "seg": "Ostatní", "type": "UM", "sent": 368, "deliv": 368, "opens": 208, "open_rate": 56.52, "ctr": 5.98, "ctor": 10.58, "unsub": 0, "hb": 0, "sb": 3, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1652, "date": "2022-09-23", "dlabel": "23.9.2022", "month": "2022-09", "hour": 15, "dow": 4, "dowl": "Pá", "name": "2022_09_23 NWL_no1 autumn EN", "subject": "Wild Tips from Ambiente!  🐗", "seg": "Ostatní", "type": "UM", "sent": 370, "deliv": 370, "opens": 196, "open_rate": 52.97, "ctr": 5.14, "ctor": 9.69, "unsub": 1, "hb": 0, "sb": 2, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1650, "date": "2022-09-23", "dlabel": "23.9.2022", "month": "2022-09", "hour": 13, "dow": 4, "dowl": "Pá", "name": "2022_09_23 NWL_no1 autumn CZ", "subject": "Lehce divoké tipy z Ambiente!  🐗", "seg": "Ostatní", "type": "UM", "sent": 7195, "deliv": 7195, "opens": 3991, "open_rate": 55.47, "ctr": 4.59, "ctor": 8.27, "unsub": 13, "hb": 2, "sb": 7, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1659, "date": "2022-11-03", "dlabel": "3.11.2022", "month": "2022-11", "hour": 18, "dow": 3, "dowl": "Čt", "name": "2022_11_03 NWL_no2 autumn EN", "subject": "November at Ambiente: Geese, Courses and Parties!  🍗", "seg": "Ostatní", "type": "UM", "sent": 379, "deliv": 379, "opens": 226, "open_rate": 59.63, "ctr": 6.07, "ctor": 10.18, "unsub": 1, "hb": 0, "sb": 2, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1658, "date": "2022-11-03", "dlabel": "3.11.2022", "month": "2022-11", "hour": 15, "dow": 3, "dowl": "Čt", "name": "2022_11_03 NWL_no2 autumn CZ", "subject": "Listopad v Ambiente: Husy, kurzy, oslavy! 🍗", "seg": "Ostatní", "type": "UM", "sent": 7280, "deliv": 7280, "opens": 4170, "open_rate": 57.28, "ctr": 7.18, "ctor": 12.54, "unsub": 10, "hb": 1, "sb": 9, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1693, "date": "2023-01-19", "dlabel": "19.1.2023", "month": "2023-01", "hour": 15, "dow": 3, "dowl": "Čt", "name": "Ambiente_19_1_2023_dotaznik zpetne vazby zamestnancum", "subject": "Dáváte zpětnou vazbu našim restauracím? 🔍", "seg": "Ostatní", "type": "UM", "sent": 480, "deliv": 480, "opens": 249, "open_rate": 51.88, "ctr": 17.92, "ctor": 34.54, "unsub": 1, "hb": 1, "sb": 1, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1756, "date": "2023-06-23", "dlabel": "23.6.2023", "month": "2023-06", "hour": 12, "dow": 4, "dowl": "Pá", "name": "23_06_maximum_cizi", "subject": "Naučte se o pivu pivní poslední! 🍻", "seg": "Ostatní", "type": "UM", "sent": 86, "deliv": 86, "opens": 51, "open_rate": 59.3, "ctr": 19.77, "ctor": 33.33, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1755, "date": "2023-06-23", "dlabel": "23.6.2023", "month": "2023-06", "hour": 12, "dow": 4, "dowl": "Pá", "name": "2023_06_maximum_kurz", "subject": "Naučte se o pivu pivní poslední! 🍻", "seg": "Ostatní", "type": "UM", "sent": 194, "deliv": 194, "opens": 115, "open_rate": 59.28, "ctr": 10.31, "ctor": 17.39, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1761, "date": "2023-06-29", "dlabel": "29.6.2023", "month": "2023-06", "hour": 10, "dow": 3, "dowl": "Čt", "name": "2023_06_28_NWL_summer_no3_EN", "subject": "To Karlovy Vary, to U Zavadilů and for a drink at the Klub! ⭐️", "seg": "Ostatní", "type": "UM", "sent": 369, "deliv": 369, "opens": 229, "open_rate": 62.06, "ctr": 3.52, "ctor": 5.68, "unsub": 1, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1766, "date": "2023-07-14", "dlabel": "14.7.2023", "month": "2023-07", "hour": 8, "dow": 4, "dowl": "Pá", "name": "2023_07_12_NWL_no4_summer EN", "subject": "Beer for 5 crowns at the Castle, a light summer menu at Café Savoy and America in the courtyard 🍻", "seg": "Ostatní", "type": "UM", "sent": 366, "deliv": 366, "opens": 212, "open_rate": 57.92, "ctr": 5.46, "ctor": 9.43, "unsub": 0, "hb": 1, "sb": 2, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1780, "date": "2023-07-28", "dlabel": "28.7.2023", "month": "2023-07", "hour": 9, "dow": 4, "dowl": "Pá", "name": "2023_07_26_NWL_no4_summer EN", "subject": "Tastings and Dumplings 🥄", "seg": "Ostatní", "type": "UM", "sent": 365, "deliv": 365, "opens": 218, "open_rate": 59.73, "ctr": 5.75, "ctor": 9.63, "unsub": 0, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1791, "date": "2023-08-06", "dlabel": "6.8.2023", "month": "2023-08", "hour": 8, "dow": 6, "dowl": "Ne", "name": "2023_08_Stangl-otevreni-forum", "subject": "Sousedská novinka: Restaurace Štangl poprvé prostře v úterý večer", "seg": "Ostatní", "type": "UM", "sent": 10, "deliv": 10, "opens": 8, "open_rate": 80.0, "ctr": 40.0, "ctor": 50.0, "unsub": 0, "hb": 1, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1832, "date": "2023-09-12", "dlabel": "12.9.2023", "month": "2023-09", "hour": 10, "dow": 1, "dowl": "Út", "name": "2023_09_12 Kulinar v UMu CZ", "subject": "Co si navaříte, to si taky sníte! 👩‍🍳🧑‍🍳", "seg": "Ostatní", "type": "UM", "sent": 1813, "deliv": 1813, "opens": 1064, "open_rate": 58.69, "ctr": 1.27, "ctor": 2.16, "unsub": 5, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1831, "date": "2023-09-12", "dlabel": "12.9.2023", "month": "2023-09", "hour": 10, "dow": 1, "dowl": "Út", "name": "2023_09_12 Kulinar v UMu EN", "subject": "Eat what you make! 👩‍🍳🧑‍🍳", "seg": "Ostatní", "type": "UM", "sent": 88, "deliv": 88, "opens": 52, "open_rate": 59.09, "ctr": 5.68, "ctor": 9.62, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 1903, "date": "2023-12-05", "dlabel": "5.12.2023", "month": "2023-12", "hour": 10, "dow": 1, "dowl": "Út", "name": "2023_12_05_UM_prosinec STAFF", "subject": "Stalo se v UMu 👀", "seg": "STAFF", "type": "UM", "sent": 22, "deliv": 22, "opens": 19, "open_rate": 86.36, "ctr": 13.64, "ctor": 15.79, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1902, "date": "2023-12-05", "dlabel": "5.12.2023", "month": "2023-12", "hour": 10, "dow": 1, "dowl": "Út", "name": "2023_12_05_UM_prosinec", "subject": "Stalo se v UMu 👀", "seg": "Ostatní", "type": "UM", "sent": 1016, "deliv": 1015, "opens": 628, "open_rate": 61.87, "ctr": 7.98, "ctor": 12.9, "unsub": 21, "hb": 1, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1924, "date": "2024-01-03", "dlabel": "3.1.2024", "month": "2024-01", "hour": 10, "dow": 2, "dowl": "St", "name": "2024_01_02_UM_leden STAFF", "subject": "Stalo se v UMu 👀", "seg": "STAFF", "type": "UM", "sent": 21, "deliv": 21, "opens": 17, "open_rate": 80.95, "ctr": 14.29, "ctor": 17.65, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1923, "date": "2024-01-03", "dlabel": "3.1.2024", "month": "2024-01", "hour": 10, "dow": 2, "dowl": "St", "name": "2024_01_02_UM_leden", "subject": "Stalo se v UMu 👀", "seg": "Ostatní", "type": "UM", "sent": 992, "deliv": 991, "opens": 635, "open_rate": 64.08, "ctr": 8.78, "ctor": 13.7, "unsub": 11, "hb": 1, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1946, "date": "2024-02-06", "dlabel": "6.2.2024", "month": "2024-02", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_02_06_UM_únor", "subject": "Přijďte povečeřet do SKÔ 🇸🇰", "seg": "Ostatní", "type": "UM", "sent": 27, "deliv": 27, "opens": 25, "open_rate": 92.59, "ctr": 14.81, "ctor": 16.0, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1945, "date": "2024-02-06", "dlabel": "6.2.2024", "month": "2024-02", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_02_06_UM_únor", "subject": "Přijďte povečeřet do SKÔ 🇸🇰", "seg": "Ostatní", "type": "UM", "sent": 1083, "deliv": 1080, "opens": 675, "open_rate": 62.5, "ctr": 9.54, "ctor": 15.26, "unsub": 7, "hb": 2, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1971, "date": "2024-03-05", "dlabel": "5.3.2024", "month": "2024-03", "hour": 11, "dow": 1, "dowl": "Út", "name": "2024_03_05_UM_březen_STAFF", "subject": "O japonské kuchyni i české pekařině 💚", "seg": "STAFF", "type": "UM", "sent": 27, "deliv": 27, "opens": 13, "open_rate": 48.15, "ctr": 14.81, "ctor": 30.77, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1970, "date": "2024-03-05", "dlabel": "5.3.2024", "month": "2024-03", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_03_05_UM_březen", "subject": "O japonské kuchyni i české pekařině 💚", "seg": "Ostatní", "type": "UM", "sent": 1074, "deliv": 1073, "opens": 661, "open_rate": 61.6, "ctr": 7.74, "ctor": 12.56, "unsub": 5, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1996, "date": "2024-04-02", "dlabel": "2.4.2024", "month": "2024-04", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_04_02_UM_duben STAFF", "subject": "Kino, pop-up a letní tábor u nás v kuchyni 💚", "seg": "STAFF", "type": "UM", "sent": 28, "deliv": 28, "opens": 13, "open_rate": 46.43, "ctr": 10.71, "ctor": 23.08, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 1995, "date": "2024-04-02", "dlabel": "2.4.2024", "month": "2024-04", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_04_02_UM_duben", "subject": "Kino, pop-up a letní tábor u nás v kuchyni 💚", "seg": "Ostatní", "type": "UM", "sent": 1068, "deliv": 1067, "opens": 580, "open_rate": 54.36, "ctr": 6.28, "ctor": 11.55, "unsub": 5, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2001, "date": "2024-04-08", "dlabel": "8.4.2024", "month": "2024-04", "hour": 13, "dow": 0, "dowl": "Po", "name": "2024_04_08 Koffee Mameya v UMu CZ", "subject": "Zveme vás na kávu, kterou hned tak neochutnáte 🇯🇵", "seg": "Ostatní", "type": "UM", "sent": 2155, "deliv": 2155, "opens": 1426, "open_rate": 66.17, "ctr": 3.67, "ctor": 5.54, "unsub": 1, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lucie Svobodová"}, {"id": 2022, "date": "2024-04-30", "dlabel": "30.4.2024", "month": "2024-04", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_04_02_UM_kveten STAFF", "subject": "Sirény houkají i o svátku 🚨", "seg": "STAFF", "type": "UM", "sent": 32, "deliv": 32, "opens": 25, "open_rate": 78.13, "ctr": 3.13, "ctor": 4.0, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2021, "date": "2024-04-30", "dlabel": "30.4.2024", "month": "2024-04", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_04_02_UM_kveten", "subject": "Sirény houkají i o svátku 🚨", "seg": "Ostatní", "type": "UM", "sent": 1151, "deliv": 1151, "opens": 715, "open_rate": 62.12, "ctr": 6.69, "ctor": 10.77, "unsub": 7, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2047, "date": "2024-06-04", "dlabel": "4.6.2024", "month": "2024-06", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_06_04_UM_cerven STAFF", "subject": "Poslední sirény před pauzou 🚨", "seg": "STAFF", "type": "UM", "sent": 35, "deliv": 35, "opens": 27, "open_rate": 77.14, "ctr": 5.71, "ctor": 7.41, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2045, "date": "2024-06-04", "dlabel": "4.6.2024", "month": "2024-06", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_06_04_UM_cerven", "subject": "Poslední sirény před pauzou 🚨", "seg": "Ostatní", "type": "UM", "sent": 1154, "deliv": 1154, "opens": 711, "open_rate": 61.61, "ctr": 8.15, "ctor": 13.22, "unsub": 9, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2059, "date": "2024-06-14", "dlabel": "14.6.2024", "month": "2024-06", "hour": 10, "dow": 4, "dowl": "Pá", "name": "2024_06_11_Morek CZ", "subject": "Červnové novinky ze života v Ambiente!", "seg": "Ostatní", "type": "Morek", "sent": 587, "deliv": 587, "opens": 313, "open_rate": 53.32, "ctr": 8.52, "ctor": 15.97, "unsub": 1, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2063, "date": "2024-06-26", "dlabel": "26.6.2024", "month": "2024-06", "hour": 12, "dow": 2, "dowl": "St", "name": "2024_06_26_výzkum Lokál Nad Stromovkou", "subject": "Štamgastům Prahy 7", "seg": "Ostatní", "type": "UM", "sent": 147, "deliv": 147, "opens": 124, "open_rate": 84.35, "ctr": 52.38, "ctor": 62.1, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2073, "date": "2024-07-02", "dlabel": "2.7.2024", "month": "2024-07", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_07_02_UM_cervenec STAFF", "subject": "Servírujeme prázdninovou fúzi 🍣🍮", "seg": "STAFF", "type": "UM", "sent": 34, "deliv": 34, "opens": 29, "open_rate": 85.29, "ctr": 2.94, "ctor": 3.45, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2072, "date": "2024-07-02", "dlabel": "2.7.2024", "month": "2024-07", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_07_02_UM_cervenec", "subject": "Servírujeme prázdninovou fúzi 🍣🍮", "seg": "Ostatní", "type": "UM", "sent": 1195, "deliv": 1195, "opens": 676, "open_rate": 56.57, "ctr": 5.61, "ctor": 9.91, "unsub": 12, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2088, "date": "2024-08-05", "dlabel": "5.8.2024", "month": "2024-08", "hour": 10, "dow": 0, "dowl": "Po", "name": "2024_08_05_Morek CZ", "subject": "Prázdninové novinky ze života v Ambiente!", "seg": "Ostatní", "type": "Morek", "sent": 594, "deliv": 594, "opens": 319, "open_rate": 53.7, "ctr": 5.05, "ctor": 9.4, "unsub": 1, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2093, "date": "2024-08-06", "dlabel": "6.8.2024", "month": "2024-08", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_08_06_UM_srpen STAFF", "subject": "Než skončí léto 🌊", "seg": "STAFF", "type": "UM", "sent": 34, "deliv": 34, "opens": 27, "open_rate": 79.41, "ctr": 20.59, "ctor": 25.93, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2092, "date": "2024-08-06", "dlabel": "6.8.2024", "month": "2024-08", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_08_06_UM_srpen", "subject": "Než skončí léto 🌊", "seg": "Ostatní", "type": "UM", "sent": 1138, "deliv": 1137, "opens": 653, "open_rate": 57.43, "ctr": 6.77, "ctor": 11.79, "unsub": 9, "hb": 1, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2091, "date": "2024-08-06", "dlabel": "6.8.2024", "month": "2024-08", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_08_06 Kulinar v UMu EN", "subject": "Secret KULINÁŘ for 32 guests. And not one more! 🤫", "seg": "Ostatní", "type": "UM", "sent": 69, "deliv": 69, "opens": 50, "open_rate": 72.46, "ctr": 18.84, "ctor": 26.0, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2090, "date": "2024-08-06", "dlabel": "6.8.2024", "month": "2024-08", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_08_06 Kulinar v UMu CZ", "subject": "Tajný kulinář pro 32 hostů. Víc ani ťuk! 🤫", "seg": "Ostatní", "type": "UM", "sent": 2223, "deliv": 2223, "opens": 1335, "open_rate": 60.05, "ctr": 9.67, "ctor": 16.1, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2094, "date": "2024-08-07", "dlabel": "7.8.2024", "month": "2024-08", "hour": 10, "dow": 2, "dowl": "St", "name": "2024_08_06_UM_srpen Kulinář", "subject": "Než skončí léto 🌊", "seg": "Ostatní", "type": "UM", "sent": 71, "deliv": 71, "opens": 58, "open_rate": 81.69, "ctr": 7.04, "ctor": 8.62, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2112, "date": "2024-08-28", "dlabel": "28.8.2024", "month": "2024-08", "hour": 11, "dow": 2, "dowl": "St", "name": "2024_08_28_Morek CZ", "subject": "Novinky ze života v Ambiente!", "seg": "Ostatní", "type": "Morek", "sent": 597, "deliv": 597, "opens": 323, "open_rate": 54.1, "ctr": 7.71, "ctor": 14.24, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2114, "date": "2024-09-03", "dlabel": "3.9.2024", "month": "2024-09", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_09_03_UM_zari STAFF", "subject": "Jak chutná design? 🎨", "seg": "STAFF", "type": "UM", "sent": 33, "deliv": 33, "opens": 28, "open_rate": 84.85, "ctr": 6.06, "ctor": 7.14, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2113, "date": "2024-09-03", "dlabel": "3.9.2024", "month": "2024-09", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_09_03_UM_zari", "subject": "Jak chutná design? 🎨", "seg": "Ostatní", "type": "UM", "sent": 1268, "deliv": 1268, "opens": 723, "open_rate": 57.02, "ctr": 6.62, "ctor": 11.62, "unsub": 4, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2133, "date": "2024-10-01", "dlabel": "1.10.2024", "month": "2024-10", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_10_01_UM_rijen STAFF", "subject": "Přišel čas na poctivý čaj 🌱🍵", "seg": "STAFF", "type": "UM", "sent": 35, "deliv": 35, "opens": 26, "open_rate": 74.29, "ctr": 14.29, "ctor": 19.23, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2132, "date": "2024-10-01", "dlabel": "1.10.2024", "month": "2024-10", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_10_01_UM_rijen", "subject": "Přišel čas na poctivý čaj 🌱🍵", "seg": "Ostatní", "type": "UM", "sent": 1291, "deliv": 1291, "opens": 688, "open_rate": 53.29, "ctr": 5.5, "ctor": 10.32, "unsub": 9, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2131, "date": "2024-10-01", "dlabel": "1.10.2024", "month": "2024-10", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_10_01_UM_rijen_kulinari", "subject": "Přišel čas na poctivý čaj 🌱🍵", "seg": "Ostatní", "type": "UM", "sent": 83, "deliv": 83, "opens": 55, "open_rate": 66.27, "ctr": 15.66, "ctor": 23.64, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2139, "date": "2024-10-10", "dlabel": "10.10.2024", "month": "2024-10", "hour": 10, "dow": 3, "dowl": "Čt", "name": "2024_10_08_Morek CZ", "subject": "Koho potkáte na plakátech a v letenské Esce?", "seg": "Ostatní", "type": "Morek", "sent": 609, "deliv": 609, "opens": 377, "open_rate": 61.9, "ctr": 9.52, "ctor": 15.38, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2162, "date": "2024-11-05", "dlabel": "5.11.2024", "month": "2024-11", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_11_05_UM_listopad STAFF", "subject": "Přijdete na Šneka? 🍴", "seg": "STAFF", "type": "UM", "sent": 36, "deliv": 36, "opens": 26, "open_rate": 72.22, "ctr": 19.44, "ctor": 26.92, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2161, "date": "2024-11-05", "dlabel": "5.11.2024", "month": "2024-11", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_11_05_UM_listopad", "subject": "Přijdete na Šneka? 🍴", "seg": "Ostatní", "type": "UM", "sent": 1371, "deliv": 1369, "opens": 834, "open_rate": 60.92, "ctr": 8.25, "ctor": 13.55, "unsub": 11, "hb": 2, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2181, "date": "2024-11-19", "dlabel": "19.11.2024", "month": "2024-11", "hour": 14, "dow": 1, "dowl": "Út", "name": "2024_11_19_Morek CZ", "subject": "Co se chystá na dvorcích a kam pro první dárky?", "seg": "Ostatní", "type": "Morek", "sent": 628, "deliv": 627, "opens": 323, "open_rate": 51.52, "ctr": 8.93, "ctor": 17.34, "unsub": 0, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2203, "date": "2024-12-03", "dlabel": "3.12.2024", "month": "2024-12", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_12_04_UM_prosinec STAFF", "subject": "Z kurzu pečení odejdete s plnou náručí 💚", "seg": "STAFF", "type": "UM", "sent": 36, "deliv": 36, "opens": 28, "open_rate": 77.78, "ctr": 19.44, "ctor": 25.0, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2202, "date": "2024-12-03", "dlabel": "3.12.2024", "month": "2024-12", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_12_04_UM_prosinec", "subject": "Z kurzu pečení odejdete s plnou náručí 💚", "seg": "Ostatní", "type": "UM", "sent": 1442, "deliv": 1442, "opens": 832, "open_rate": 57.7, "ctr": 8.25, "ctor": 14.3, "unsub": 9, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2214, "date": "2024-12-18", "dlabel": "18.12.2024", "month": "2024-12", "hour": 10, "dow": 2, "dowl": "St", "name": "2024_12_17_Morek CZ", "subject": "O tohle jste si ani Ježíškovi netroufli napsat🍺", "seg": "Ostatní", "type": "Morek", "sent": 652, "deliv": 651, "opens": 373, "open_rate": 57.3, "ctr": 4.92, "ctor": 8.58, "unsub": 0, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2239, "date": "2025-01-27", "dlabel": "27.1.2025", "month": "2025-01", "hour": 14, "dow": 0, "dowl": "Po", "name": "2025_01_27_výzkum Lokál Pod Divadlem", "subject": "Štamgastům Plzně", "seg": "Ostatní", "type": "UM", "sent": 128, "deliv": 128, "opens": 101, "open_rate": 78.91, "ctr": 52.34, "ctor": 66.34, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2241, "date": "2025-02-04", "dlabel": "4.2.2025", "month": "2025-02", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_02_04_UM_únor STAFF", "subject": "Uíuíuí. Zkouška sirén je zpátky 🚨", "seg": "STAFF", "type": "UM", "sent": 36, "deliv": 36, "opens": 28, "open_rate": 77.78, "ctr": 16.67, "ctor": 21.43, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2240, "date": "2025-02-04", "dlabel": "4.2.2025", "month": "2025-02", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_02_04_UM_únor", "subject": "Uíuíuí. Zkouška sirén je zpátky 🚨", "seg": "Ostatní", "type": "UM", "sent": 1432, "deliv": 1430, "opens": 814, "open_rate": 56.92, "ctr": 5.24, "ctor": 9.21, "unsub": 9, "hb": 2, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2262, "date": "2025-02-12", "dlabel": "12.2.2025", "month": "2025-02", "hour": 10, "dow": 2, "dowl": "St", "name": "2025_02_11_Morek CZ STAFF", "subject": "Už vám bylo deset v Ambiente? Tak s námi letos budete slavit!", "seg": "STAFF", "type": "Morek", "sent": 627, "deliv": 627, "opens": 345, "open_rate": 55.02, "ctr": 5.26, "ctor": 9.57, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2261, "date": "2025-02-12", "dlabel": "12.2.2025", "month": "2025-02", "hour": 10, "dow": 2, "dowl": "St", "name": "2025_02_11_Morek CZ Tamigo", "subject": "Už vám bylo deset v Ambiente? Tak s námi letos budete slavit!", "seg": "Tamigo", "type": "Morek", "sent": 495, "deliv": 489, "opens": 262, "open_rate": 53.58, "ctr": 6.13, "ctor": 11.45, "unsub": 2, "hb": 6, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2264, "date": "2025-02-14", "dlabel": "14.2.2025", "month": "2025-02", "hour": 14, "dow": 4, "dowl": "Pá", "name": "2024_02_14_UM_Katsu-sando STAFF", "subject": "Chystáme exkluzivních 20 sendvičů s japonským Wagyu 🇯🇵", "seg": "STAFF", "type": "UM", "sent": 36, "deliv": 36, "opens": 31, "open_rate": 86.11, "ctr": 22.22, "ctor": 25.81, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2263, "date": "2025-02-14", "dlabel": "14.2.2025", "month": "2025-02", "hour": 14, "dow": 4, "dowl": "Pá", "name": "2024_02_14_UM_Katsu-sando", "subject": "Chystáme exkluzivních 20 sendvičů s japonským Wagyu 🇯🇵", "seg": "Ostatní", "type": "UM", "sent": 1580, "deliv": 1579, "opens": 856, "open_rate": 54.21, "ctr": 6.78, "ctor": 12.5, "unsub": 6, "hb": 1, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2274, "date": "2025-03-04", "dlabel": "4.3.2025", "month": "2025-03", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_03_04_UM_březen STAFF CZ", "subject": "Voda dělá vývar💧 3 tipy, jak s tím naložit", "seg": "STAFF", "type": "UM", "sent": 36, "deliv": 36, "opens": 28, "open_rate": 77.78, "ctr": 11.11, "ctor": 14.29, "unsub": 1, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2273, "date": "2025-03-04", "dlabel": "4.3.2025", "month": "2025-03", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_03_04_UM_březen CZ", "subject": "Voda dělá vývar💧 3 tipy, jak s tím naložit", "seg": "Ostatní", "type": "UM", "sent": 1594, "deliv": 1592, "opens": 950, "open_rate": 59.67, "ctr": 5.78, "ctor": 9.68, "unsub": 3, "hb": 2, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2281, "date": "2025-03-10", "dlabel": "10.3.2025", "month": "2025-03", "hour": 16, "dow": 0, "dowl": "Po", "name": "2025_03_dotaznik-Morek Tamigo", "subject": "Chcete Morek? Řekněte nám to!", "seg": "Tamigo", "type": "Morek", "sent": 291, "deliv": 291, "opens": 140, "open_rate": 48.11, "ctr": 14.09, "ctor": 29.29, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2280, "date": "2025-03-10", "dlabel": "10.3.2025", "month": "2025-03", "hour": 16, "dow": 0, "dowl": "Po", "name": "2025_03_dotaznik-Morek STAFF", "subject": "Chcete Morek? Řekněte nám to!", "seg": "STAFF", "type": "Morek", "sent": 629, "deliv": 629, "opens": 314, "open_rate": 49.92, "ctr": 17.65, "ctor": 35.35, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2283, "date": "2025-03-11", "dlabel": "11.3.2025", "month": "2025-03", "hour": 15, "dow": 1, "dowl": "Út", "name": "2024_03_11_Morek CZ Tamigo", "subject": "Michelin jede do Česka a baristi do Guatemaly!", "seg": "Tamigo", "type": "Morek", "sent": 291, "deliv": 291, "opens": 143, "open_rate": 49.14, "ctr": 4.81, "ctor": 9.79, "unsub": 2, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2282, "date": "2025-03-11", "dlabel": "11.3.2025", "month": "2025-03", "hour": 15, "dow": 1, "dowl": "Út", "name": "2024_03_11_Morek CZ STAFF", "subject": "Michelin jede do Česka a baristi do Guatemaly!", "seg": "STAFF", "type": "Morek", "sent": 629, "deliv": 629, "opens": 336, "open_rate": 53.42, "ctr": 5.88, "ctor": 11.01, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2303, "date": "2025-04-01", "dlabel": "1.4.2025", "month": "2025-04", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_03_04_UM_duben CZ STAFF", "subject": "Od plecovníku po kávové třešně ☕️", "seg": "STAFF", "type": "UM", "sent": 35, "deliv": 35, "opens": 24, "open_rate": 68.57, "ctr": 11.43, "ctor": 16.67, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2302, "date": "2025-04-01", "dlabel": "1.4.2025", "month": "2025-04", "hour": 10, "dow": 1, "dowl": "Út", "name": "2024_03_04_UM_duben CZ", "subject": "Od plecovníku po kávové třešně ☕️", "seg": "Ostatní", "type": "UM", "sent": 1588, "deliv": 1587, "opens": 864, "open_rate": 54.44, "ctr": 5.48, "ctor": 10.07, "unsub": 14, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2316, "date": "2025-04-08", "dlabel": "8.4.2025", "month": "2025-04", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_04_08_Morek CZ Tamigo", "subject": "Kuchaři, přepište si kalendáře!", "seg": "Tamigo", "type": "Morek", "sent": 291, "deliv": 291, "opens": 137, "open_rate": 47.08, "ctr": 2.41, "ctor": 5.11, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2315, "date": "2025-04-08", "dlabel": "8.4.2025", "month": "2025-04", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_04_08_Morek CZ STAFF", "subject": "Kuchaři, přepište si kalendáře!", "seg": "STAFF", "type": "Morek", "sent": 627, "deliv": 627, "opens": 325, "open_rate": 51.83, "ctr": 5.1, "ctor": 9.85, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2326, "date": "2025-04-15", "dlabel": "15.4.2025", "month": "2025-04", "hour": 16, "dow": 1, "dowl": "Út", "name": "2024_04_15_UM_Katsu-sando-vol2 STAFF", "subject": "Chystáme další sendviče s japonským Wagyu", "seg": "STAFF", "type": "UM", "sent": 35, "deliv": 35, "opens": 26, "open_rate": 74.29, "ctr": 14.29, "ctor": 19.23, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2325, "date": "2025-04-15", "dlabel": "15.4.2025", "month": "2025-04", "hour": 16, "dow": 1, "dowl": "Út", "name": "2024_04_15_UM_Katsu-sando-vol2", "subject": "Chystáme další sendviče s japonským Wagyu", "seg": "Ostatní", "type": "UM", "sent": 1574, "deliv": 1573, "opens": 825, "open_rate": 52.45, "ctr": 4.83, "ctor": 9.21, "unsub": 11, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2345, "date": "2025-05-06", "dlabel": "6.5.2025", "month": "2025-05", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_05_05_UM_kveten CZ STAFF", "subject": "Pop-upy, polévka devítka a čtení z kuchyně 🫜", "seg": "STAFF", "type": "UM", "sent": 35, "deliv": 35, "opens": 25, "open_rate": 71.43, "ctr": 17.14, "ctor": 24.0, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Sára Bráchova"}, {"id": 2344, "date": "2025-05-06", "dlabel": "6.5.2025", "month": "2025-05", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_05_05_UM_kveten CZ", "subject": "Pop-upy, polévka devítka a čtení z kuchyně 🫜", "seg": "Ostatní", "type": "UM", "sent": 1579, "deliv": 1578, "opens": 896, "open_rate": 56.78, "ctr": 6.53, "ctor": 11.5, "unsub": 10, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Sára Bráchova"}, {"id": 2351, "date": "2025-05-13", "dlabel": "13.5.2025", "month": "2025-05", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_05_13_Morek CZ Tamigo", "subject": "Ambiente čeká na 2 kg vlastnoručně nasbírané kávy", "seg": "Tamigo", "type": "Morek", "sent": 292, "deliv": 292, "opens": 136, "open_rate": 46.58, "ctr": 2.4, "ctor": 5.15, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2350, "date": "2025-05-13", "dlabel": "13.5.2025", "month": "2025-05", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_05_12_Morek CZ STAFF", "subject": "Ambiente čeká na 2 kg vlastnoručně nasbírané kávy", "seg": "STAFF", "type": "Morek", "sent": 640, "deliv": 640, "opens": 356, "open_rate": 55.63, "ctr": 2.81, "ctor": 5.06, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2382, "date": "2025-06-03", "dlabel": "3.6.2025", "month": "2025-06", "hour": 9, "dow": 1, "dowl": "Út", "name": "2025_05_05_UM_cerven STAFF", "subject": "Naše kuchyň se opět mění ve Šneka 🐌 Budete tam?", "seg": "STAFF", "type": "UM", "sent": 35, "deliv": 35, "opens": 25, "open_rate": 71.43, "ctr": 8.57, "ctor": 12.0, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2381, "date": "2025-06-03", "dlabel": "3.6.2025", "month": "2025-06", "hour": 9, "dow": 1, "dowl": "Út", "name": "2025_05_05_UM_cerven", "subject": "Naše kuchyň se opět mění ve Šneka 🐌 Budete tam?", "seg": "Ostatní", "type": "UM", "sent": 1567, "deliv": 1565, "opens": 788, "open_rate": 50.35, "ctr": 4.86, "ctor": 9.64, "unsub": 8, "hb": 1, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2387, "date": "2025-06-10", "dlabel": "10.6.2025", "month": "2025-06", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_06_10_Morek CZ STAFF", "subject": "10 litrů zelený, úspěch Pizzy Nuova a novinky ze Skô", "seg": "STAFF", "type": "Morek", "sent": 645, "deliv": 645, "opens": 320, "open_rate": 49.61, "ctr": 4.34, "ctor": 8.75, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2386, "date": "2025-06-10", "dlabel": "10.6.2025", "month": "2025-06", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_06_10_Morek CZ Tamigo", "subject": "10 litrů zelený, úspěch Pizzy Nuova a novinky ze Skô", "seg": "Tamigo", "type": "Morek", "sent": 292, "deliv": 292, "opens": 128, "open_rate": 43.84, "ctr": 3.42, "ctor": 7.81, "unsub": 2, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2395, "date": "2025-06-17", "dlabel": "17.6.2025", "month": "2025-06", "hour": 13, "dow": 1, "dowl": "Út", "name": "2025_06_17_Morek CZ Pípa Tamigo", "subject": "Osmnáctého v 18 hodin – termín, který nejde poplést. Nebo?", "seg": "Tamigo", "type": "Morek", "sent": 290, "deliv": 290, "opens": 115, "open_rate": 39.66, "ctr": 2.07, "ctor": 5.22, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2394, "date": "2025-06-17", "dlabel": "17.6.2025", "month": "2025-06", "hour": 13, "dow": 1, "dowl": "Út", "name": "2025_06_17_Morek CZ Pípa STAFF", "subject": "Osmnáctého v 18 hodin – termín, který nejde poplést. Nebo?", "seg": "STAFF", "type": "Morek", "sent": 663, "deliv": 663, "opens": 295, "open_rate": 44.49, "ctr": 1.81, "ctor": 4.07, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2413, "date": "2025-07-01", "dlabel": "1.7.2025", "month": "2025-07", "hour": 9, "dow": 1, "dowl": "Út", "name": "2025_07_01_UM_cervenec STAFF", "subject": "Do Prahy přijede uznávaný šéfkuchař. Chcete být u toho? 👀", "seg": "STAFF", "type": "UM", "sent": 33, "deliv": 33, "opens": 26, "open_rate": 78.79, "ctr": 6.06, "ctor": 7.69, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2412, "date": "2025-07-01", "dlabel": "1.7.2025", "month": "2025-07", "hour": 9, "dow": 1, "dowl": "Út", "name": "2025_07_01_UM_cervenec", "subject": "Do Prahy přijede uznávaný šéfkuchař. Chcete být u toho? 👀", "seg": "Ostatní", "type": "UM", "sent": 1558, "deliv": 1557, "opens": 915, "open_rate": 58.77, "ctr": 3.6, "ctor": 6.12, "unsub": 10, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2418, "date": "2025-07-08", "dlabel": "8.7.2025", "month": "2025-07", "hour": 14, "dow": 1, "dowl": "Út", "name": "2025_06_10_Morek CZ Tamigo", "subject": "Pssst, něco se tu šušká 🤫", "seg": "Tamigo", "type": "Morek", "sent": 290, "deliv": 290, "opens": 132, "open_rate": 45.52, "ctr": 4.48, "ctor": 9.85, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2417, "date": "2025-07-08", "dlabel": "8.7.2025", "month": "2025-07", "hour": 14, "dow": 1, "dowl": "Út", "name": "2025_06_10_Morek CZ STAFF", "subject": "Pssst, něco se tu šušká 🤫", "seg": "STAFF", "type": "Morek", "sent": 657, "deliv": 657, "opens": 360, "open_rate": 54.79, "ctr": 6.7, "ctor": 12.22, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2438, "date": "2025-08-05", "dlabel": "5.8.2025", "month": "2025-08", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_08_05_UM_srpen STAFF", "subject": "Máme mapu hovězích partií. Jak chutná oponka a co s kližkou? 🐄", "seg": "STAFF", "type": "UM", "sent": 32, "deliv": 32, "opens": 24, "open_rate": 75.0, "ctr": 9.38, "ctor": 12.5, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2437, "date": "2025-08-05", "dlabel": "5.8.2025", "month": "2025-08", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_08_05_UM_srpen", "subject": "Máme mapu hovězích partií. Jak chutná oponka a co s kližkou? 🐄", "seg": "Ostatní", "type": "UM", "sent": 1561, "deliv": 1560, "opens": 859, "open_rate": 55.06, "ctr": 7.63, "ctor": 13.85, "unsub": 8, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2451, "date": "2025-08-19", "dlabel": "19.8.2025", "month": "2025-08", "hour": 15, "dow": 1, "dowl": "Út", "name": "2025_08_19_Morek CZ Tamigo", "subject": "Už se to blíží! 💥 Na co se těšit 9. 9.?", "seg": "Tamigo", "type": "Morek", "sent": 291, "deliv": 290, "opens": 123, "open_rate": 42.41, "ctr": 6.21, "ctor": 14.63, "unsub": 0, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2450, "date": "2025-08-19", "dlabel": "19.8.2025", "month": "2025-08", "hour": 15, "dow": 1, "dowl": "Út", "name": "2025_08_19_Morek CZ STAFF", "subject": "Už se to blíží! 💥 Na co se těšit 9. 9.?", "seg": "STAFF", "type": "Morek", "sent": 646, "deliv": 646, "opens": 370, "open_rate": 57.28, "ctr": 9.44, "ctor": 16.49, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2467, "date": "2025-09-02", "dlabel": "2.9.2025", "month": "2025-09", "hour": 11, "dow": 1, "dowl": "Út", "name": "2025_09_02_UM_zari STAFF", "subject": "Zveme vás ke stolu, do kuchyně i na pole 🤝🏼", "seg": "STAFF", "type": "UM", "sent": 31, "deliv": 31, "opens": 24, "open_rate": 77.42, "ctr": 16.13, "ctor": 20.83, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2465, "date": "2025-09-02", "dlabel": "2.9.2025", "month": "2025-09", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_09_02_UM_zari", "subject": "Zveme vás ke stolu, do kuchyně i na pole 🤝🏼", "seg": "Ostatní", "type": "UM", "sent": 1543, "deliv": 1542, "opens": 819, "open_rate": 53.11, "ctr": 6.55, "ctor": 12.33, "unsub": 6, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2481, "date": "2025-09-16", "dlabel": "16.9.2025", "month": "2025-09", "hour": 11, "dow": 1, "dowl": "Út", "name": "025_09_16_Morek CZ STAFF", "subject": "Sešlo se celé Ambiente a chystáme se vydat knihu!", "seg": "STAFF", "type": "Morek", "sent": 688, "deliv": 688, "opens": 361, "open_rate": 52.47, "ctr": 13.95, "ctor": 26.59, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2480, "date": "2025-09-16", "dlabel": "16.9.2025", "month": "2025-09", "hour": 11, "dow": 1, "dowl": "Út", "name": "2025_09_16_Morek CZ Tamigo", "subject": "Sešlo se celé Ambiente a chystáme se vydat knihu!", "seg": "Tamigo", "type": "Morek", "sent": 247, "deliv": 247, "opens": 103, "open_rate": 41.7, "ctr": 9.31, "ctor": 22.33, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2499, "date": "2025-09-30", "dlabel": "30.9.2025", "month": "2025-09", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_09_30_UM_rijen STAFF", "subject": "Zelenina na piedestalu a kniha La Degustation v předprodeji 👀", "seg": "STAFF", "type": "UM", "sent": 30, "deliv": 30, "opens": 25, "open_rate": 83.33, "ctr": 6.67, "ctor": 8.0, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2498, "date": "2025-09-30", "dlabel": "30.9.2025", "month": "2025-09", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_09_30_UM_rijen", "subject": "Zelenina na piedestalu a kniha La Degustation v předprodeji 👀", "seg": "Ostatní", "type": "UM", "sent": 1548, "deliv": 1546, "opens": 824, "open_rate": 53.3, "ctr": 6.02, "ctor": 11.29, "unsub": 5, "hb": 1, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2520, "date": "2025-10-22", "dlabel": "22.10.2025", "month": "2025-10", "hour": 14, "dow": 2, "dowl": "St", "name": "2025_10_16_Morek CZ Tamigo", "subject": "Až do morku kosti: testování nejlepšího českého půllitru pokračuje", "seg": "Tamigo", "type": "Morek", "sent": 236, "deliv": 236, "opens": 101, "open_rate": 42.8, "ctr": 4.24, "ctor": 9.9, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2519, "date": "2025-10-22", "dlabel": "22.10.2025", "month": "2025-10", "hour": 14, "dow": 2, "dowl": "St", "name": "2025_10_16_Morek CZ STAFF", "subject": "Až do morku kosti: testování nejlepšího českého půllitru pokračuje", "seg": "STAFF", "type": "Morek", "sent": 676, "deliv": 676, "opens": 367, "open_rate": 54.29, "ctr": 3.7, "ctor": 6.81, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2529, "date": "2025-11-04", "dlabel": "4.11.2025", "month": "2025-11", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_11_04_UM_listopad STAFF", "subject": "Nová česká, nová kniha, nový kolega a menu na Zkoušku sirén 👀", "seg": "STAFF", "type": "UM", "sent": 29, "deliv": 29, "opens": 24, "open_rate": 82.76, "ctr": 6.9, "ctor": 8.33, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2528, "date": "2025-11-04", "dlabel": "4.11.2025", "month": "2025-11", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_11_04_UM_listopad", "subject": "Nová česká, nová kniha, nový kolega a menu na Zkoušku sirén 👀", "seg": "Ostatní", "type": "UM", "sent": 1569, "deliv": 1569, "opens": 933, "open_rate": 59.46, "ctr": 6.5, "ctor": 10.93, "unsub": 12, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2547, "date": "2025-11-20", "dlabel": "20.11.2025", "month": "2025-11", "hour": 10, "dow": 3, "dowl": "Čt", "name": "2025_11_18_Morek CZ Tamigo", "subject": "Všechny kontroly jsou hotové! Kdy otevíráme v Holešovicích? 👀", "seg": "Tamigo", "type": "Morek", "sent": 236, "deliv": 236, "opens": 104, "open_rate": 44.07, "ctr": 4.24, "ctor": 9.62, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2546, "date": "2025-11-20", "dlabel": "20.11.2025", "month": "2025-11", "hour": 9, "dow": 3, "dowl": "Čt", "name": "2025_11_18_Morek CZ STAFF", "subject": "Všechny kontroly jsou hotové! Kdy otevíráme v Holešovicích? 👀", "seg": "STAFF", "type": "Morek", "sent": 664, "deliv": 664, "opens": 356, "open_rate": 53.61, "ctr": 4.82, "ctor": 8.99, "unsub": 1, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2559, "date": "2025-12-02", "dlabel": "2.12.2025", "month": "2025-12", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_12_02_UM_prosinec", "subject": "Od salátu ke hvězdám ⭐️ Darujte um a taky zazáříte", "seg": "Ostatní", "type": "UM", "sent": 1553, "deliv": 1553, "opens": 851, "open_rate": 54.8, "ctr": 6.44, "ctor": 11.75, "unsub": 6, "hb": 1, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2558, "date": "2025-12-02", "dlabel": "2.12.2025", "month": "2025-12", "hour": 10, "dow": 1, "dowl": "Út", "name": "2025_12_02_UM_prosinec STAFF", "subject": "Od salátu ke hvězdám ⭐️ Darujte um a taky zazáříte", "seg": "STAFF", "type": "UM", "sent": 29, "deliv": 29, "opens": 24, "open_rate": 82.76, "ctr": 13.79, "ctor": 16.67, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2564, "date": "2025-12-10", "dlabel": "10.12.2025", "month": "2025-12", "hour": 7, "dow": 2, "dowl": "St", "name": "2025_12_10_Morek CZ Otevíračka Myšák", "subject": "Myšák v Holešovicích spustil zkušební provoz! 🐭", "seg": "Ostatní", "type": "Morek", "sent": 664, "deliv": 664, "opens": 336, "open_rate": 50.6, "ctr": 0.0, "ctor": 0.0, "unsub": 1, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2580, "date": "2025-12-18", "dlabel": "18.12.2025", "month": "2025-12", "hour": 10, "dow": 3, "dowl": "Čt", "name": "2025_12_16_Morek CZ Tamigo", "subject": "Takhle bohatý prosinec tu ještě nebyl! 🎄", "seg": "Tamigo", "type": "Morek", "sent": 235, "deliv": 235, "opens": 101, "open_rate": 42.98, "ctr": 5.53, "ctor": 12.87, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2579, "date": "2025-12-18", "dlabel": "18.12.2025", "month": "2025-12", "hour": 10, "dow": 3, "dowl": "Čt", "name": "2025_12_16_Morek CZ STAFF", "subject": "Takhle bohatý prosinec tu ještě nebyl! 🎄", "seg": "STAFF", "type": "Morek", "sent": 652, "deliv": 652, "opens": 323, "open_rate": 49.54, "ctr": 5.98, "ctor": 12.07, "unsub": 0, "hb": 0, "sb": 1, "err": 0, "consent": 1, "author": "Adéla Truksa"}, {"id": 2604, "date": "2026-01-13", "dlabel": "13.1.2026", "month": "2026-01", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_01_06_UM_leden STAFF", "subject": "Uzrála nám káva z Guatemaly a hovězí čtvrť: co teď s tím? 👀", "seg": "STAFF", "type": "UM", "sent": 28, "deliv": 28, "opens": 22, "open_rate": 78.57, "ctr": 10.71, "ctor": 13.64, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2603, "date": "2026-01-13", "dlabel": "13.1.2026", "month": "2026-01", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_01_06_UM_leden", "subject": "Uzrála nám káva z Guatemaly a hovězí čtvrť: co teď s tím? 👀", "seg": "Ostatní", "type": "UM", "sent": 1540, "deliv": 1540, "opens": 824, "open_rate": 53.51, "ctr": 4.68, "ctor": 8.74, "unsub": 8, "hb": 2, "sb": 1, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2611, "date": "2026-01-20", "dlabel": "20.1.2026", "month": "2026-01", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_01_20_Morek CZ Tamigo", "subject": "Do nového roku s novým elánem 💥", "seg": "Tamigo", "type": "Morek", "sent": 233, "deliv": 233, "opens": 104, "open_rate": 44.64, "ctr": 2.58, "ctor": 5.77, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2610, "date": "2026-01-20", "dlabel": "20.1.2026", "month": "2026-01", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_01_20_Morek CZ STAFF", "subject": "Do nového roku s novým elánem 💥", "seg": "STAFF", "type": "Morek", "sent": 715, "deliv": 715, "opens": 359, "open_rate": 50.21, "ctr": 2.94, "ctor": 5.85, "unsub": 0, "hb": 1, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2621, "date": "2026-02-03", "dlabel": "3.2.2026", "month": "2026-02", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_03_02_UM_únor", "subject": "Plnotučný, řeznický, japonský 🍜 nabroušený program na únor", "seg": "Ostatní", "type": "UM", "sent": 1519, "deliv": 1519, "opens": 776, "open_rate": 51.09, "ctr": 5.4, "ctor": 10.57, "unsub": 2, "hb": 4, "sb": 2, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2620, "date": "2026-02-03", "dlabel": "3.2.2026", "month": "2026-02", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_03_02_UM_únor STAFF", "subject": "Plnotučný, řeznický, japonský 🍜 nabroušený program na únor", "seg": "STAFF", "type": "UM", "sent": 28, "deliv": 28, "opens": 20, "open_rate": 71.43, "ctr": 10.71, "ctor": 15.0, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2642, "date": "2026-02-24", "dlabel": "24.2.2026", "month": "2026-02", "hour": 11, "dow": 1, "dowl": "Út", "name": "2026_02_24_Morek CZ. Tamigo", "subject": "Seznamte se, oblíbený šéfkuchař šéfkuchařů přijíždí! 🧑‍🍳", "seg": "Tamigo", "type": "Morek", "sent": 231, "deliv": 231, "opens": 112, "open_rate": 48.48, "ctr": 4.33, "ctor": 8.93, "unsub": 1, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2641, "date": "2026-02-24", "dlabel": "24.2.2026", "month": "2026-02", "hour": 11, "dow": 1, "dowl": "Út", "name": "2026_02_24_Morek CZ STAFF", "subject": "Seznamte se, oblíbený šéfkuchař šéfkuchařů přijíždí! 🧑‍🍳", "seg": "STAFF", "type": "Morek", "sent": 705, "deliv": 705, "opens": 367, "open_rate": 52.06, "ctr": 4.68, "ctor": 8.99, "unsub": 1, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2645, "date": "2026-03-03", "dlabel": "3.3.2026", "month": "2026-03", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_03_03_UM_březen STAFF", "subject": "Radí kuchařům a vaří po francouzsku 👨🏼‍🍳 teď míří do Prahy", "seg": "STAFF", "type": "UM", "sent": 27, "deliv": 27, "opens": 18, "open_rate": 66.67, "ctr": 7.41, "ctor": 11.11, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2644, "date": "2026-03-03", "dlabel": "3.3.2026", "month": "2026-03", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_03_03_UM_březen", "subject": "Radí kuchařům a vaří po francouzsku 👨🏼‍🍳 teď míří do Prahy (vč. doposlání)", "seg": "Ostatní", "type": "UM", "sent": 1526, "deliv": 1526, "opens": 772, "open_rate": 50.59, "ctr": 4.65, "ctor": 9.2, "unsub": 2, "hb": 4, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2671, "date": "2026-03-24", "dlabel": "24.3.2026", "month": "2026-03", "hour": 12, "dow": 1, "dowl": "Út", "name": "2026_03_24_Morek CZ Tamigo", "subject": "Další otvíračka letošního roku odtajněna 🤫", "seg": "Tamigo", "type": "Morek", "sent": 228, "deliv": 228, "opens": 104, "open_rate": 45.61, "ctr": 3.95, "ctor": 8.65, "unsub": 1, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2670, "date": "2026-03-24", "dlabel": "24.3.2026", "month": "2026-03", "hour": 12, "dow": 1, "dowl": "Út", "name": "2026_03_24_Morek CZ STAFF", "subject": "Další otvíračka letošního roku odtajněna 🤫", "seg": "STAFF", "type": "Morek", "sent": 681, "deliv": 681, "opens": 381, "open_rate": 55.95, "ctr": 6.02, "ctor": 10.76, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2677, "date": "2026-03-31", "dlabel": "31.3.2026", "month": "2026-03", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_03_31_UM_duben", "subject": "Zítřek bude škaredý, aprílový a rozhoukaný 🤭", "seg": "Ostatní", "type": "UM", "sent": 1531, "deliv": 1531, "opens": 772, "open_rate": 50.42, "ctr": 3.53, "ctor": 6.99, "unsub": 4, "hb": 4, "sb": 1, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2676, "date": "2026-03-31", "dlabel": "31.3.2026", "month": "2026-03", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_03_31_UM_duben STAFF", "subject": "Zítřek bude škaredý, aprílový a rozhoukaný 🤭", "seg": "STAFF", "type": "UM", "sent": 27, "deliv": 27, "opens": 19, "open_rate": 70.37, "ctr": 18.52, "ctor": 26.32, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2702, "date": "2026-04-21", "dlabel": "21.4.2026", "month": "2026-04", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_04_21_Morek CZ STAFF a RODINA", "subject": "Zelená se na lepší matchové časy? 🍵", "seg": "STAFF", "type": "Morek", "sent": 734, "deliv": 734, "opens": 330, "open_rate": 44.96, "ctr": 6.81, "ctor": 15.15, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2712, "date": "2026-05-05", "dlabel": "5.5.2026", "month": "2026-05", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_05_05_UM_květen STAFF", "subject": "Testujeme chřest, vezeme matchu 🍵 Zeleno na pop-upu i v šálku", "seg": "STAFF", "type": "UM", "sent": 24, "deliv": 24, "opens": 15, "open_rate": 62.5, "ctr": 8.33, "ctor": 13.33, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2711, "date": "2026-05-05", "dlabel": "5.5.2026", "month": "2026-05", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_05_05_UM_květen", "subject": "Testujeme chřest, vezeme matchu 🍵 Zeleno na pop-upu i v šálku", "seg": "Ostatní", "type": "UM", "sent": 1533, "deliv": 1533, "opens": 792, "open_rate": 51.66, "ctr": 2.28, "ctor": 4.42, "unsub": 5, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2714, "date": "2026-05-06", "dlabel": "6.5.2026", "month": "2026-05", "hour": 16, "dow": 2, "dowl": "St", "name": "2026_05_06_Morek CZ STAFF", "subject": "Kdo najde výherního Karpíška? 👀", "seg": "STAFF", "type": "Morek", "sent": 731, "deliv": 731, "opens": 400, "open_rate": 54.72, "ctr": 5.06, "ctor": 9.25, "unsub": 2, "hb": 1, "sb": 1, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2742, "date": "2026-05-19", "dlabel": "19.5.2026", "month": "2026-05", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_05_19_Morek CZ Tamigo", "subject": "Trojhlavý drak v čele LOKÁL CZ 🍻 Kdo přebírá vedení?", "seg": "Tamigo", "type": "Morek", "sent": 225, "deliv": 225, "opens": 92, "open_rate": 40.89, "ctr": 5.33, "ctor": 13.04, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2741, "date": "2026-05-19", "dlabel": "19.5.2026", "month": "2026-05", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_05_19_Morek CZ STAFF", "subject": "Trojhlavý drak v čele LOKÁL CZ 🍻 Kdo přebírá vedení?", "seg": "STAFF", "type": "Morek", "sent": 740, "deliv": 740, "opens": 372, "open_rate": 50.27, "ctr": 7.57, "ctor": 15.05, "unsub": 1, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2755, "date": "2026-06-02", "dlabel": "2.6.2026", "month": "2026-06", "hour": 14, "dow": 1, "dowl": "Út", "name": "2026_06_02_UM_červen STAFF", "subject": "Sirény jinak a kurz tak akorát na léto 🥬", "seg": "STAFF", "type": "UM", "sent": 26, "deliv": 26, "opens": 17, "open_rate": 65.38, "ctr": 7.69, "ctor": 11.76, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2754, "date": "2026-06-02", "dlabel": "2.6.2026", "month": "2026-06", "hour": 14, "dow": 1, "dowl": "Út", "name": "2026_06_02_UM_červen", "subject": "Sirény jinak a kurz tak akorát na léto 🥬", "seg": "Ostatní", "type": "UM", "sent": 1526, "deliv": 1526, "opens": 826, "open_rate": 54.13, "ctr": 4.91, "ctor": 9.08, "unsub": 6, "hb": 0, "sb": 1, "err": 0, "consent": 0, "author": "Lenka Pinkavová"}, {"id": 2789, "date": "2026-06-30", "dlabel": "30.6.2026", "month": "2026-06", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_06_30_UM_cervenec STAFF", "subject": "Nové chutě a studené polévky starých tradic 🍒", "seg": "STAFF", "type": "UM", "sent": 26, "deliv": 26, "opens": 20, "open_rate": 76.92, "ctr": 0.0, "ctor": 0.0, "unsub": 0, "hb": 0, "sb": 0, "err": 0, "consent": 0, "author": "Adéla Truksa"}, {"id": 2788, "date": "2026-06-30", "dlabel": "30.6.2026", "month": "2026-06", "hour": 10, "dow": 1, "dowl": "Út", "name": "2026_06_30_UM_cervenec", "subject": "Nové chutě a studené polévky starých tradic 🍒", "seg": "Ostatní", "type": "UM", "sent": 1513, "deliv": 1513, "opens": 742, "open_rate": 49.04, "ctr": 1.78, "ctor": 3.64, "unsub": 3, "hb": 0, "sb": 5, "err": 0, "consent": 0, "author": "Adéla Truksa"}];
+const czk=n=>new Intl.NumberFormat('cs-CZ').format(Math.round(n));
+const pct=n=>n==null?'—':n.toFixed(1).replace('.',',')+' %';
+const dec1=n=>n.toFixed(1).replace('.',',');
+const mean=(a,k)=>{let v=a.filter(d=>d[k]!=null);return v.length?v.reduce((s,d)=>s+d[k],0)/v.length:0;};
+const sum=(a,k)=>a.reduce((s,d)=>s+(d[k]||0),0);
+const orW=a=>{let dv=sum(a,'deliv');return dv?100*sum(a,'opens')/dv:0;};
+const yr=d=>d.date.slice(0,4);
+Chart.defaults.font.family="Inter, sans-serif"; Chart.defaults.font.size=11; Chart.defaults.animation=false;
+
+/* theme colors */
+const isDark=()=>document.body.classList.contains('dark');
+function C(){const d=isDark();return{
+  grid:d?'#2c2c2c':'#eee', tick:d?'#9a9a9a':'#8a8a8a',
+  open:d?'#e23b54':'#c8102e', ctor:d?'#ededed':'#111111', ctr:'#9a9a9a', unsub:d?'#4d97f0':'#2a7de1',
+  seg:{STAFF:d?'#e23b54':'#c8102e',Tamigo:d?'#e6e6e6':'#111111','Ostatní':'#9a9a9a'} };}
+const colKey=k=>({open_rate:C().open,ctor:C().ctor,ctr:C().ctr,unsub:C().unsub})[k];
+
+/* master state */
+let masterType='all', masterGroup='all', masterPeriod='all', customFrom=DATA[0].date, customTo=DATA[DATA.length-1].date;
+const MAXD=new Date(DATA[DATA.length-1].date); const CUT12=new Date(MAXD); CUT12.setMonth(CUT12.getMonth()-11); CUT12.setDate(1);
+const inType=d=>masterType==='all'||d.type===masterType;
+const inGroup=d=>masterGroup==='all'||d.seg===masterGroup;
+const inPeriod=d=>{ if(masterPeriod==='all')return true;
+  if(masterPeriod==='last12')return new Date(d.date)>=CUT12;
+  if(masterPeriod==='custom'){const dd=new Date(d.date);
+    if(customFrom&&dd<new Date(customFrom))return false; if(customTo&&dd>new Date(customTo))return false; return true;}
+  return yr(d)===masterPeriod; };
+const scopedAll=()=>DATA.filter(d=>inType(d)&&inGroup(d));
+const scoped=()=>DATA.filter(d=>inType(d)&&inGroup(d)&&inPeriod(d));
+function mdLabel(iso){const p=iso.split('-');return (+p[2])+'. '+(+p[1])+'.';}
+function periodWindow(){
+  if(masterPeriod==='custom'&&customFrom&&customTo){
+    const f=customFrom.slice(5),t=customTo.slice(5),wrap=f>t;
+    return {label:mdLabel(customFrom)+' – '+mdLabel(customTo),test:d=>{const md=d.date.slice(5);return wrap?(md>=f||md<=t):(md>=f&&md<=t);}};
+  }
+  return {label:'celý rok',test:()=>true};
+}
+
+/* selects */
+(function(){
+  const years=[...new Set(DATA.map(yr))].sort().reverse();
+  document.getElementById('mfPeriod').innerHTML=
+    ['<option value="all">Celé období</option>','<option value="last12">Posledních 12 měsíců</option>']
+    .concat(years.map(y=>`<option value="${y}">${y}</option>`))
+    .concat(['<option value="custom">Vlastní rozsah z kalendáře…</option>']).join('');
+  const fIn=document.getElementById('dateFrom'),tIn=document.getElementById('dateTo');
+  fIn.min=tIn.min=DATA[0].date; fIn.max=tIn.max=DATA[DATA.length-1].date; fIn.value=DATA[0].date; tIn.value=DATA[DATA.length-1].date;
+  const types=[...new Set(DATA.map(d=>d.type))];
+  document.getElementById('mfType').innerHTML='<option value="all">Vše</option>'+types.map(t=>`<option value="${t}">${t}</option>`).join('');
+  const groups=['STAFF','Tamigo','Ostatní'].filter(g=>DATA.some(d=>d.seg===g));
+  document.getElementById('mfGroup').innerHTML='<option value="all">Vše</option>'+groups.map(g=>`<option value="${g}">${g}</option>`).join('');
+})();
+document.getElementById('mastSub').innerHTML =
+  `<span>Období <b>${DATA[0].dlabel} – ${DATA[DATA.length-1].dlabel}</b></span>`+
+  `<span>Newslettery <b>${[...new Set(DATA.map(d=>d.type))].join(', ')}</b></span>`+
+  `<span>Kampaní <b>${DATA.length}</b></span>`+
+  `<span>Odesláno <b>${czk(sum(DATA,'sent'))}</b> e-mailů</span>`+
+  `<span>Autoři <b>${[...new Set(DATA.map(d=>d.author))].join(', ')}</b></span>`;
+
+/* TIMELINE */
+const TLM=[
+  {k:'open_rate',label:'Open rate',def:'Open rate — podíl otevřených e-mailů z doručených.'},
+  {k:'ctor',label:'CTOR',def:'CTOR (click-to-open rate) — podíl těch, kdo klikli, z těch, kdo e-mail otevřeli. Měří kvalitu obsahu: nízký CTOR znamená, že lidé e-mail otevřou, ale text, nabídka nebo tlačítko (CTA) je dál nezaujaly.'},
+  {k:'ctr',label:'CTR',def:'CTR (click-through rate) — podíl těch, kdo klikli na odkaz, z doručených e-mailů. Ukazuje celkovou úspěšnost kampaně: zohledňuje i to, jak lidi zaujal předmět zprávy (open rate) a zda e-mail vůbec otevřeli.'},
+  {k:'unsub',label:'Odhlášení',count:true,def:'Odhlášení — počet příjemců, kteří se po kampani odhlásili z odběru. Absolutní počet, vynáší se na pravou osu.'},
+];
+let tlOn=new Set(['open_rate','ctor','ctr']), tlChart=null;
+function buildMetChips(){
+  document.getElementById('metChips').innerHTML='<span class="fl">Metriky</span>'+
+    TLM.map(m=>`<button class="mchip" data-met="${m.k}" title="${m.def}" style="--mc:${colKey(m.k)}"><span class="d"></span>${m.label}</button>`).join('');
+  syncMet();
+}
+const syncMet=()=>document.querySelectorAll('[data-met]').forEach(b=>b.classList.toggle('off',!tlOn.has(b.dataset.met)));
+function drawTL(){
+  const rows=scoped(), cc=C(), anyCount=TLM.some(m=>m.count&&tlOn.has(m.k));
+  if(tlChart)tlChart.destroy();
+  tlChart=new Chart(document.getElementById('cTL'),{type:'line',
+    data:{labels:rows.map(d=>d.dlabel),datasets:TLM.filter(m=>tlOn.has(m.k)).map(m=>({
+      label:m.label,data:rows.map(d=>d[m.k]),borderColor:colKey(m.k),backgroundColor:colKey(m.k),
+      tension:.3,borderWidth:2.2,pointRadius:rows.length>20?2:3,pointHoverRadius:5,spanGaps:true,
+      yAxisID:m.count?'y1':'y',isCount:!!m.count}))},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{title:i=>{const r=rows[i[0].dataIndex];return r?r.dlabel:'';},
+          afterTitle:i=>{const r=rows[i[0].dataIndex];if(!r)return '';const s=r.subject.length>52?r.subject.slice(0,51)+'…':r.subject;return [r.name,'„'+s+'\u201c'];},
+          label:c=>c.dataset.isCount?(c.dataset.label+': '+c.parsed.y):(c.dataset.label+': '+(c.parsed.y==null?'—':dec1(c.parsed.y)+' %'))}}},
+      scales:{y:{grid:{color:cc.grid},ticks:{color:cc.tick,callback:v=>v+' %'},beginAtZero:true,
+          title:{display:true,text:'podíl (%)',color:cc.tick,font:{size:10}}},
+        y1:{position:'right',display:anyCount,beginAtZero:true,grid:{drawOnChartArea:false},
+          ticks:{color:cc.tick,precision:0},title:{display:anyCount,text:'odhlášení (počet)',color:cc.tick,font:{size:10}}},
+        x:{grid:{display:false},ticks:{color:cc.tick,maxTicksLimit:9,maxRotation:0,autoSkip:true}}}}});
+  const r=scoped();
+  document.getElementById('heroOR').innerHTML=(r.length?orW(r).toFixed(0):'—')+'<span> %</span>';
+  document.getElementById('tlScope').textContent=r.length+' kampaní ve výběru';
+}
+
+/* FUNNEL */
+function renderFunnel(){
+  const r=scoped(), deliv=sum(r,'deliv'), opens=sum(r,'opens');
+  const clicks=Math.round(r.reduce((s,d)=>s+((d.ctr||0)/100*(d.deliv||0)),0));
+  const openR=deliv?100*opens/deliv:0, ctorR=opens?100*clicks/opens:0, ctrR=deliv?100*clicks/deliv:0;
+  document.getElementById('fnScope').textContent=r.length+' kampaní · '+czk(deliv)+' doručených';
+  const w=v=>deliv?Math.max(2,100*v/deliv):0;
+  const stage=(lab,val,wid,col,sub)=>`<div class="fn-stage"><div class="fn-barwrap"><div class="fn-bar" style="width:${wid}%;background:${col}">${lab}</div></div><div class="fn-val"><div class="v">${deliv?czk(val):'—'}</div><div class="s">${sub}</div></div></div>`;
+  document.getElementById('funnel').innerHTML=
+    stage('Doručené e-maily',deliv,100,'var(--fn1)','100 % — základ')
+    +`<div class="fn-step">otevřelo <b>${dec1(openR)} %</b> doručených · open rate</div>`
+    +stage('Otevřené e-maily',opens,w(opens),'var(--fn2)',dec1(openR)+' % z doručených')
+    +`<div class="fn-step">kliklo <b>${dec1(ctorR)} %</b> z otevřených · CTOR</div>`
+    +stage('Kliknuté e-maily',clicks,w(clicks),'var(--fn3)',dec1(ctrR)+' % z doručených');
+}
+
+/* YoY */
+const YEARC=()=>{const d=isDark();return{'2024':d?'#5a5a5a':'#cfcfcf','2025':d?'#9a9a9a':'#6e6e6e','2026':d?'#e23b54':'#c8102e'};};
+const PARTIAL={'2024':1,'2026':1};
+function deltaBadge(c,p){if(p==null)return '';const d=c-p;if(Math.abs(d)<0.05)return '<span class="dlt flat">±0</span>';
+  return `<span class="dlt ${d>0?'up':'dn'}">${d>0?'▲':'▼'} ${dec1(Math.abs(d))} pp</span>`;}
+let yoyCharts=[];
+const valLabel={id:'vl',afterDatasetsDraw(ch){const{ctx}=ch;ctx.save();const cnt=ch.data.datasets[0].fmtCount;
+  ch.getDatasetMeta(0).data.forEach((b,i)=>{const v=ch.data.datasets[0].data[i];if(v==null)return;
+    ctx.fillStyle=isDark()?'#cfcfcf':'#3a3a3a';ctx.font='700 11px Inter';ctx.textAlign='center';
+    ctx.fillText(cnt?czk(v):dec1(v)+' %',b.x,b.y-7);});ctx.restore();}};
+function renderYoY(){
+  const win=periodWindow();
+  const base=DATA.filter(d=>inType(d)&&inGroup(d)&&win.test(d));
+  const yrs=[...new Set(base.map(yr))].sort();
+  const AGG={};yrs.forEach(y=>{const r=base.filter(d=>yr(d)===y);
+    AGG[y]={n:r.length,sent:sum(r,'sent'),open_rate:orW(r),ctr:mean(r,'ctr'),ctor:mean(r,'ctor'),unsub:sum(r,'unsub')};});
+  document.getElementById('yoyScope').textContent='období: '+win.label+' · '+(masterType==='all'?'všechny typy':masterType)+(masterGroup==='all'?'':' · '+masterGroup)+' · roky '+(yrs.join(', ')||'—');
+  const rowsCfg=[{k:'n',label:'Počet kampaní',rate:false,fmt:v=>v},{k:'sent',label:'Odesláno e-mailů',rate:false,fmt:czk},
+    {k:'open_rate',label:'Open rate (vážený)',rate:true},{k:'ctr',label:'CTR ⌀',rate:true},{k:'ctor',label:'CTOR ⌀',rate:true},
+    {k:'unsub',label:'Odhlášení',rate:false,fmt:czk}];
+  let th=`<thead><tr><th class="l">Metrika</th>`+yrs.map(y=>`<th>${y}</th>`).join('')+`</tr></thead>`;
+  let body=rowsCfg.map(cfg=>{let tds=yrs.map((y,i)=>{const v=AGG[y][cfg.k];const txt=cfg.rate?dec1(v)+' %':cfg.fmt(v);
+    const badge=(cfg.rate&&i>0)?deltaBadge(v,AGG[yrs[i-1]][cfg.k]):'';return `<td><span class="yval">${txt}</span>${badge}</td>`;}).join('');
+    return `<tr><td class="l">${cfg.label}</td>${tds}</tr>`;}).join('');
+  document.getElementById('yoyTable').innerHTML=th+'<tbody>'+body+'</tbody>';
+  yoyCharts.forEach(c=>c.destroy());yoyCharts=[];
+  const yc=YEARC();
+  const mets=[{k:'open_rate',t:'Open rate',h:'vážený, % doručených'},{k:'ctr',t:'CTR',h:'⌀ z doručených'},
+    {k:'ctor',t:'CTOR',h:'⌀ z otevřených'},{k:'unsub',t:'Odhlášení',h:'počet za rok',count:true}];
+  document.getElementById('yoyGrid').innerHTML=mets.map(m=>`<div class="mini"><h4>${m.t}</h4><div class="mh">${m.h}</div><div class="mini-canvas"><canvas id="yc_${m.k}"></canvas></div></div>`).join('');
+  mets.forEach(m=>{yoyCharts.push(new Chart(document.getElementById('yc_'+m.k),{type:'bar',
+    data:{labels:yrs,datasets:[{data:yrs.map(y=>AGG[y][m.k]),backgroundColor:yrs.map(y=>yc[y]||'#888'),borderRadius:4,maxBarThickness:54,fmtCount:!!m.count}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{grid:{display:false},ticks:{color:C().tick,font:{size:11}}},y:{display:false,beginAtZero:true,grace:'16%'}}},plugins:[valLabel]}));});
+}
+
+/* SEGMENTS */
+let segChart=null;
+function renderSeg(){
+  const r=scoped(), cc=C();
+  document.getElementById('segScope').textContent=r.length+' kampaní ve výběru';
+  const months=[...new Set(r.map(d=>d.month))].sort();
+  const segs=['STAFF','Tamigo','Ostatní'].filter(s=>r.some(d=>d.seg===s));
+  if(segChart)segChart.destroy();
+  segChart=new Chart(document.getElementById('cSeg'),{type:'bar',
+    data:{labels:months.map(m=>{const[y,mo]=m.split('-');return mo+'/'+y.slice(2);}),
+      datasets:segs.map(s=>({label:s,backgroundColor:cc.seg[s],borderRadius:3,
+        data:months.map(m=>sum(r.filter(d=>d.month===m&&d.seg===s),'sent'))}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{color:cc.tick,boxWidth:12,boxHeight:12,usePointStyle:true,font:{size:12}}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+czk(c.parsed.y)+' e-mailů'}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:cc.tick,maxTicksLimit:14,maxRotation:0,font:{size:9}}},
+        y:{stacked:true,grid:{color:cc.grid},ticks:{color:cc.tick,callback:v=>v>=1000?(v/1000)+'k':v}}}}});
+  // segment cards
+  document.getElementById('segs').innerHTML=segs.map(sg=>{const a=r.filter(d=>d.seg===sg);
+    return `<div class="segcard" style="--c:${cc.seg[sg]}"><h3><span class="seg-dot" style="background:${cc.seg[sg]};width:11px;height:11px"></span>${sg}<span class="tag">${a.length} kampaní</span></h3>
+      <div class="srow"><span class="k">Odesláno</span><span class="v">${czk(sum(a,'sent'))}</span></div>
+      <div class="srow"><span class="k">Open rate (vážený)</span><span class="v">${dec1(orW(a))} %</span></div>
+      <div class="srow"><span class="k">CTR ⌀</span><span class="v">${dec1(mean(a,'ctr'))} %</span></div>
+      <div class="srow"><span class="k">CTOR ⌀</span><span class="v">${dec1(mean(a,'ctor'))} %</span></div>
+      <div class="srow"><span class="k">Odhlášení</span><span class="v">${sum(a,'unsub')}</span></div></div>`;}).join('') || '<p style="color:var(--muted)">Žádná data pro tento výběr.</p>';
+  // demographic placeholders
+  document.getElementById('demoTiles').innerHTML=['Věk','Pohlaví','Lokalita','Jazyk'].map(t=>
+    `<div class="tile ph"><div class="tl">${t}</div><div class="tv">—</div><div class="ts">není v exportu</div></div>`).join('');
+  // technical tiles (real)
+  const deliv=sum(r,'deliv'),sent=sum(r,'sent');
+  const tech=[
+    {l:'Doručitelnost',v:sent?dec1(100*deliv/sent)+' %':'—',s:czk(deliv)+' doručených'},
+    {l:'Hard bounce',v:czk(sum(r,'hb')),s:'neexistující adresy'},
+    {l:'Soft bounce',v:czk(sum(r,'sb')),s:'dočasné chyby'},
+    {l:'Chybné odeslání',v:czk(sum(r,'err')),s:'chyby při rozesílce'},
+    {l:'Chybějící souhlas',v:czk(sum(r,'consent')),s:'bez souhlasu při odeslání'},
+    {l:'Odhlášení',v:czk(sum(r,'unsub')),s:'odhlášení z odběru'},
+  ];
+  document.getElementById('techTiles').innerHTML=tech.map(t=>
+    `<div class="tile"><div class="tl">${t.l}</div><div class="tv">${t.v}</div><div class="ts">${t.s}</div></div>`).join('')
+    +['Zařízení','E-mailový klient'].map(t=>`<div class="tile ph"><div class="tl">${t}</div><div class="tv">—</div><div class="ts">není v exportu</div></div>`).join('');
+}
+
+/* HEATMAP day x hour (open rate) */
+function renderHeatmap(){
+  const r=scoped();
+  document.getElementById('hmScope').textContent=r.length+' kampaní ve výběru';
+  const DOW=['Po','Út','St','Čt','Pá','So','Ne'];
+  const hours=[...new Set(r.map(d=>d.hour))].sort((a,b)=>a-b);
+  const rowsD=[...new Set(r.map(d=>d.dow))].sort((a,b)=>a-b);
+  const cell={};
+  r.forEach(d=>{const key=d.dow+'_'+d.hour;(cell[key]=cell[key]||[]).push(d.open_rate);});
+  const vals=Object.values(cell).map(a=>a.reduce((s,x)=>s+x,0)/a.length);
+  const lo=vals.length?Math.min(...vals):0, hi=vals.length?Math.max(...vals):1;
+  const red=isDark()?[226,59,84]:[200,16,46];
+  const colr=v=>{const t=hi>lo?(v-lo)/(hi-lo):.5;const a=.12+.78*t;return `rgba(${red[0]},${red[1]},${red[2]},${a.toFixed(3)})`;};
+  if(!r.length){document.getElementById('heatmap').innerHTML='<p style="color:var(--muted)">Žádná data pro tento výběr.</p>';return;}
+  let h='<table class="hm"><thead><tr><th class="l"></th>'+hours.map(hr=>`<th>${hr}:00</th>`).join('')+'</tr></thead><tbody>';
+  rowsD.forEach(dw=>{h+=`<tr><td class="l">${DOW[dw]}</td>`+hours.map(hr=>{
+    const arr=cell[dw+'_'+hr];
+    if(!arr)return '<td><div class="cell" style="background:var(--hover);color:var(--line2)">·</div></td>';
+    const avg=arr.reduce((s,x)=>s+x,0)/arr.length, t=hi>lo?(avg-lo)/(hi-lo):.5;
+    return `<td><div class="cell" title="${DOW[dw]} ${hr}:00 — ⌀ open rate ${dec1(avg)} %, ${arr.length} kampaní" style="background:${colr(avg)};color:${t>0.55?'#fff':'var(--ink)'}">${Math.round(avg)}</div></td>`;
+  }).join('')+'</tr>';});
+  h+='</tbody></table>';
+  document.getElementById('heatmap').innerHTML=h;
+  document.getElementById('hmScale').style.background=`linear-gradient(90deg, rgba(${red[0]},${red[1]},${red[2]},.12), rgba(${red[0]},${red[1]},${red[2]},.9))`;
+  document.getElementById('modeTiles').innerHTML=['Otevřeno v dark mode','Otevřeno v light mode'].map(t=>
+    `<div class="tile ph"><div class="tl">${t}</div><div class="tv">—</div><div class="ts">není v exportu</div></div>`).join('');
+}
+
+/* DETAIL TABLE */
+let dSeg='all', sortK='date', sortDir=-1;
+const dRows=()=>scoped().filter(d=>dSeg==='all'||d.seg===dSeg);
+const pctc=n=>n==null?'<i class="z">—</i>':(n===0?'<i class="z">0,0 %</i>':dec1(n)+' %');
+function renderDetail(){
+  let rows=[...dRows()].sort((a,b)=>{let av=a[sortK],bv=b[sortK];
+    if(sortK==='name')return sortDir*String(av).localeCompare(String(bv),'cs');
+    if(sortK==='date')return sortDir*(new Date(a.date)-new Date(b.date));
+    av=av==null?-1:av;bv=bv==null?-1:bv;return sortDir*(av-bv);});
+  const seg=C().seg;
+  document.getElementById('tbody').innerHTML=rows.map(d=>`<tr>
+    <td class="l">${d.dlabel}</td>
+    <td class="l"><span class="seg-dot" style="background:${seg[d.seg]}"></span><span class="cname">${d.name}</span></td>
+    <td class="l subj">${d.subject}</td><td>${czk(d.sent)}</td><td><b>${pctc(d.open_rate)}</b></td>
+    <td>${pctc(d.ctr)}</td><td>${pctc(d.ctor)}</td><td>${d.unsub?d.unsub:'<i class="z">0</i>'}</td></tr>`).join('');
+  document.getElementById('dmCount').textContent=rows.length+' kampaní';
+  const p=document.getElementById('mfPeriod'),t=document.getElementById('mfType');
+  document.getElementById('dmScope').textContent=p.options[p.selectedIndex].text+' · '+t.options[t.selectedIndex].text;
+  document.querySelectorAll('#tbl thead th').forEach(th=>{th.classList.toggle('sorted',th.dataset.k===sortK);
+    const ar=th.querySelector('.ar');if(ar)ar.textContent=th.dataset.k===sortK?(sortDir<0?'▾':'▴'):'▾';});
+}
+
+/* footer */
+document.getElementById('foot').innerHTML=`Zdroj: export „email_campaign_history_overview" · ${DATA.length} kampaní, ${DATA[0].dlabel}–${DATA[DATA.length-1].dlabel} · Open rate vážený doručenými; CTR a CTOR prostý průměr; odhlášení absolutní počet. * Roky 2024 (VI–XII) a 2026 (I–V) jsou neúplné.`;
+
+/* refresh */
+function refreshAll(){ renderSummary(); drawTL(); renderFunnel(); renderYoY(); renderSeg(); renderHeatmap();
+  document.getElementById('scopeCount').textContent=scoped().length+' kampaní';
+  if(!document.getElementById('detailOverlay').hidden) renderDetail(); }
+
+/* events */
+document.getElementById('mfPeriod').addEventListener('change',e=>{masterPeriod=e.target.value;
+  document.getElementById('dateRange').hidden=(masterPeriod!=='custom'); refreshAll();});
+document.getElementById('dateFrom').addEventListener('change',e=>{customFrom=e.target.value;if(masterPeriod==='custom')refreshAll();});
+document.getElementById('dateTo').addEventListener('change',e=>{customTo=e.target.value;if(masterPeriod==='custom')refreshAll();});
+document.getElementById('mfType').addEventListener('change',e=>{masterType=e.target.value;refreshAll();});
+document.getElementById('mfGroup').addEventListener('change',e=>{masterGroup=e.target.value;refreshAll();});
+document.getElementById('metChips').addEventListener('click',e=>{const b=e.target.closest('[data-met]');if(!b)return;
+  const k=b.dataset.met;if(tlOn.has(k)){if(tlOn.size>1)tlOn.delete(k);}else tlOn.add(k);syncMet();drawTL();});
+document.getElementById('btnPdf').addEventListener('click',()=>window.print());
+
+/* theme */
+function setTheme(dark){document.body.classList.toggle('dark',dark);
+  document.getElementById('btnTheme').textContent=dark?'☀️':'🌙';
+  Chart.defaults.color=C().tick; buildMetChips(); refreshAll();}
+document.getElementById('btnTheme').addEventListener('click',()=>setTheme(!isDark()));
+let _wasDark=false;
+window.addEventListener('beforeprint',()=>{_wasDark=isDark();if(_wasDark)setTheme(false);});
+window.addEventListener('afterprint',()=>{if(_wasDark)setTheme(true);});
+
+/* right-click + modal */
+const ctx=document.getElementById('ctxMenu'); const overlay=document.getElementById('detailOverlay');
+const hideCtx=()=>ctx.hidden=true;
+document.getElementById('wrap').addEventListener('contextmenu',e=>{if(e.target.closest('.detail-overlay'))return;
+  e.preventDefault();ctx.style.left=Math.min(e.clientX,innerWidth-248)+'px';ctx.style.top=Math.min(e.clientY,innerHeight-62)+'px';ctx.hidden=false;});
+document.addEventListener('click',hideCtx); document.addEventListener('scroll',hideCtx,true); window.addEventListener('blur',hideCtx);
+function openModal(){overlay.hidden=false;document.body.style.overflow='hidden';renderDetail();}
+function closeModal(){overlay.hidden=true;document.body.style.overflow='';}
+document.getElementById('ctxExplore').addEventListener('click',()=>{hideCtx();openModal();});
+document.getElementById('dmClose').addEventListener('click',closeModal);
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){hideCtx();closeModal();}});
+document.querySelectorAll('[data-dseg]').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('[data-dseg]').forEach(x=>x.classList.remove('on'));c.classList.add('on');dSeg=c.dataset.dseg;renderDetail();}));
+document.querySelectorAll('#tbl thead th[data-k]').forEach(th=>th.addEventListener('click',()=>{
+  const k=th.dataset.k;if(k===sortK)sortDir*=-1;else{sortK=k;sortDir=(k==='name'?1:-1);}renderDetail();}));
+
+/* summary (celý dataset) */
+const NL_INFO={
+ 'Morek':{kdy:'měsíčně, druhé úterý v měsíci v 10:00',proKoho:'STAFF a RODINA, Tamigo',co:'novinky pro zaměstnance'},
+ 'UM':{kdy:'měsíčně, úterý před první středou v měsíci v 10:00',proKoho:'databáze UMu a přihlášení k newsletteru, profesionálové v gastronomii',co:'nová zjištění o středoevropské kuchyni, pozvánky na akce, pop-upy a besedy'},
+ 'Čtrnáctideník':{kdy:'1× za 14 dní, ve čtvrtek v 10:00 (sudý týden)',proKoho:'věrní hosté, STAFF a RODINA přihlášení k newsletteru',co:'čerstvé novinky z podniků Ambiente, proklik na kalendář akcí'},
+ 'Štamgast':{kdy:'měsíčně, třetí úterý v měsíci ve 14:00',proKoho:'věrní hosté Lokálu (STAFF a RODINA), min. 22 návštěv Lokálu za 2 roky, přihlášení k newsletteru',co:'čerstvé novinky z Lokálů, proklik na web a blog, kalendář akcí'},
+ 'Institut Pivo':{kdy:'čtvrtletně',proKoho:'nadšenci pro český pivní ležák',co:'osvěta o výrobě, čepování a konzumaci piva'},
+ 'Jídlo a radost':{kdy:'čtvrtletně',proKoho:'zájemci o kvalitní jídlo a gastronomii',co:'osvěta o výrobě a kvalitě jídla'},
+};
+function renderSummary(){
+  const A=scoped();
+  if(!A.length){document.getElementById('su_head').textContent='Shrnutí';document.getElementById('su_lead').innerHTML='Pro zvolený výběr nejsou žádná data.';document.getElementById('su_grid').innerHTML='';return;}
+  const n=A.length, sent=sum(A,'sent'), or_=orW(A), deliv=sent?100*sum(A,'deliv')/sent:0;
+  const unsub=sum(A,'unsub'), bounce=sum(A,'hb')+sum(A,'sb'), ctr=mean(A,'ctr'), ctor=mean(A,'ctor');
+  const types=[...new Set(A.map(d=>d.type))];
+  const staff=A.filter(d=>d.seg==='STAFF'), staffShare=sent?100*sum(staff,'sent')/sent:0;
+  const selType=types.length===1?types[0]:null;
+  document.getElementById('su_head').textContent = selType ? ('Newsletter '+selType+' — výkon e-mailových kampaní') : 'Interní newslettery Ambiente — výkon e-mailových kampaní';
+  document.getElementById('su_lead').innerHTML = selType
+    ? `Shrnutí newsletteru <b>${selType}</b>. Za období <b>${A[0].dlabel} – ${A[A.length-1].dlabel}</b> odešlo <b>${n} kampaní</b> a přes <b>${czk(sent)} e-mailů</b>, s váženým open rate <b>${dec1(or_)} %</b> a jen <b>${unsub} odhlášeními</b>. Každý newsletter má vlastní databázi, cílovou skupinu i design, proto ho vyhodnocujeme samostatně — čísla níže platí jen pro tento newsletter.`
+    : `V datech jsou newslettery <b>${types.join(', ')}</b>. Každý má jinou databázi, cílovou skupinu i design, takže je <b>nesrovnáváme mezi sebou</b> — pro relevantní shrnutí zvol konkrétní newsletter ve filtru „Typ newsletteru“ nahoře. (Souhrnně za výběr: ${n} kampaní, ${czk(sent)} e-mailů, open rate ${dec1(or_)} %.)`;
+  const info=selType?NL_INFO[selType]:null;
+  const nlBlock=info
+    ? {h:'O newsletteru '+selType,p:`<b>Kdy:</b> ${info.kdy}<br><b>Pro koho:</b> ${info.proKoho}<br><b>Co:</b> ${info.co}`}
+    : {h:'Vyhodnocujeme každý newsletter zvlášť',p:`Newslettery se <b>neporovnávají mezi sebou</b> — mají odlišné databáze, cílové skupiny i design. Filtrem „Typ newsletteru“ nahoře zvol jeden; shrnutí i všechny metriky se přepočítají jen pro něj.`};
+  const blocks=[
+    {h:'Celkový obrázek',p:`Doručitelnost <b>${dec1(deliv)} %</b>, za sledované období jen <b>${unsub} odhlášení</b> a <b>${bounce} bouncnutí</b> z ${czk(sent)} e-mailů — publikum je aktivní a databáze zdravá. Průměrné CTR <b>${dec1(ctr)} %</b>, CTOR <b>${dec1(ctor)} %</b>: kdo e-mail otevře, často i proklikne.`},
+    nlBlock,
+    {h:'Segmenty',p:`Segment <b>STAFF</b> (interní zaměstnanci) tvoří <b>${dec1(staffShare)} %</b> odeslaných e-mailů ve výběru, s váženou otevíraností ${dec1(orW(staff))} %. Zbytek míří na hosty či veřejnost (kategorie Ostatní), případně na menší skupiny (Tamigo).`},
+    {h:'Vývoj v čase',p:`Vážený open rate ve výběru je <b>${dec1(or_)} %</b>. Meziroční srovnání stejného období napříč roky najdeš v sekci 03.`},
+    {h:'CTR vs CTOR: kde je páka',full:true,p:`<b>CTR</b> ukazuje <b>celkovou úspěšnost kampaně</b> — zohledňuje i to, jak zaujal předmět a zda lidé e-mail vůbec otevřeli. <b>CTOR</b> naopak <b>měří kvalitu obsahu</b>: kolik z těch, kdo otevřeli, zaujala nabídka či tlačítko (CTA). Aktuálně je průměrné CTR <b>${dec1(ctr)} %</b> a CTOR <b>${dec1(ctor)} %</b>. Když open rate drží, ale CTR/CTOR klesají, páka na zlepšení leží v <b>textu, nabídce a CTA uvnitř e-mailu</b>, ne jen v předmětu.`},
+  ];
+  document.getElementById('su_grid').innerHTML=blocks.map(b=>`<div${b.full?' style="grid-column:1/-1"':''}><h3>${b.h}</h3><p>${b.p}</p></div>`).join('');
+}
+
+/* init */
+renderSummary();
+buildMetChips();
+document.getElementById('scopeCount').textContent=scoped().length+' kampaní';
+refreshAll();
+</script>
+</body>
+</html>
